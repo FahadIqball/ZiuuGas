@@ -1,0 +1,15 @@
+export const colors = {
+  primary: '#0084ff',
+  secondary: '#09316d',
+  background: '#ffffff',
+  text: '#1a1a1a',
+  textSecondary: '#666666',
+  inputBackground: '#f5f7fa',
+  inputPlaceholder: '#b3b3b3',
+  border: '#e0e0e0',
+  error: '#ff3333',
+  whatsapp: '#9ba4b5',
+  orange: '#ff8a00',
+  otpEmpty: '#e0eaff',
+  otpFilled: '#0084ff',
+};
