@@ -1,14 +1,24 @@
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Text, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity } from 'react-native';
-import { colors } from '../../../enums/colors';
-import { spacing } from '../../../enums/spacing';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, TextInput, TouchableOpacity, Image } from 'react-native';
+import { useTheme } from '../../../hooks/useTheme';
+import { useStyles } from '../../../hooks/useStyles';
+import { ThemeColors } from '../../../enums/colors';
+import { hp, spacing } from '../../../enums/spacing';
 import { typography } from '../../../enums/typography';
 import { Button } from '../../../common/components/Button';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { Routes } from '../../../constants/routes';
+import { AppText } from '../../../common/components/Typography/Typography';
+import { useAuth } from '../../../context/AuthContext';
 
 const OTPVerificationScreen = ({ navigation }: any) => {
   const [otp, setOtp] = useState(['4', '6', '', '']);
   const inputs = useRef<Array<TextInput | null>>([]);
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = useStyles(createStyles);
+  const { login } = useAuth();
 
   const handleOtpChange = (value: string, index: number) => {
     const newOtp = [...otp];
@@ -26,6 +36,14 @@ const OTPVerificationScreen = ({ navigation }: any) => {
     }
   };
 
+  const handleVerifyCode = async () => {
+    try {
+      await login('user');
+    } catch (err) {
+      console.error('OTP verify login failed:', err);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -34,15 +52,16 @@ const OTPVerificationScreen = ({ navigation }: any) => {
       >
         <View style={styles.header}>
           <View style={styles.iconContainer}>
-            {/* Placeholder for the chat/lock icon */}
-            <View style={styles.iconPlaceholder}>
-              <Text style={styles.iconText}>💬</Text>
-            </View>
+            <Image
+              source={require('../../../assets/images/verification.png')}
+              style={styles.iconPlaceholder}
+              resizeMode="contain"
+            />
           </View>
-          <Text style={styles.title}>Verification Code</Text>
-          <Text style={styles.subtitle}>
-            Enter 4-6 digit OTP we have sent to your{'\n'}Whatsapp or e-mail
-          </Text>
+          <AppText style={styles.title}>{t('verificationCode')}</AppText>
+          <AppText style={styles.subtitle}>
+            {t('otpInstruction')}
+          </AppText>
         </View>
 
         <View style={styles.formContainer}>
@@ -50,7 +69,7 @@ const OTPVerificationScreen = ({ navigation }: any) => {
             {otp.map((digit, index) => (
               <TextInput
                 key={index}
-                ref={(ref) => (inputs.current[index] = ref)}
+                ref={(ref) => { inputs.current[index] = ref; }}
                 style={[
                   styles.otpInput,
                   digit ? styles.otpInputFilled : null,
@@ -61,21 +80,22 @@ const OTPVerificationScreen = ({ navigation }: any) => {
                 keyboardType="numeric"
                 maxLength={1}
                 textAlign="center"
+                placeholderTextColor={colors.textSecondary}
               />
             ))}
           </View>
 
           <Button
-            title="Verify Code"
+            title={t('verifyCode')}
             variant="primary"
-            onPress={() => navigation.navigate('Signup')}
+            onPress={handleVerifyCode}
             style={styles.verifyButton}
           />
 
           <View style={styles.resendContainer}>
-            <Text style={styles.resendText}>Did'nt Recieve the code? </Text>
+            <AppText style={styles.resendText}>{t('didntReceive')}</AppText>
             <TouchableOpacity>
-              <Text style={styles.resendAction}>Resend it</Text>
+              <AppText style={styles.resendAction}>{t('resendCode')}</AppText>
             </TouchableOpacity>
           </View>
         </View>
@@ -84,7 +104,7 @@ const OTPVerificationScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -94,29 +114,22 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginTop: spacing.xxl * 2,
+    marginTop: spacing.xxl * 3,
     marginBottom: spacing.xl,
     paddingHorizontal: spacing.l,
   },
   iconContainer: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    backgroundColor: '#ffe6cc',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.l,
   },
   iconPlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: colors.orange,
+    width: 80,
+    height: 80,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  iconText: {
-    fontSize: 24,
   },
   title: {
     ...typography.h3,
@@ -156,6 +169,7 @@ const styles = StyleSheet.create({
   verifyButton: {
     width: '100%',
     marginBottom: spacing.l,
+    height: hp(6)
   },
   resendContainer: {
     flexDirection: 'row',

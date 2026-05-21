@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "689328436670",
+    "project_id": "ziuugas",
+    "storage_bucket": "ziuugas.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:689328436670:android:15ebad0af4169e14bef5ef",
+        "android_client_info": {
+          "package_name": "com.ziuugas"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "689328436670-fdnvamm1ir15ncq9lfrh86ojmm0l6vs9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ziuugas",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "689328436670-298qguqv5e6vo7oj3ekocva5tkklcus9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCu_W3e17INRQ4MhqVoLBWFDP-nKf6NSMA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "689328436670-298qguqv5e6vo7oj3ekocva5tkklcus9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

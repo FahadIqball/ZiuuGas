@@ -1,17 +1,19 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps, ViewStyle, TextStyle } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, TouchableOpacityProps, ViewStyle, TextStyle, View, StyleProp } from 'react-native';
 import { colors } from '../../../enums/colors';
-import { spacing } from '../../../enums/spacing';
+import { hp, spacing } from '../../../enums/spacing';
 import { typography } from '../../../enums/typography';
 
 interface ButtonProps extends TouchableOpacityProps {
   title: string;
   variant?: 'primary' | 'secondary' | 'whatsapp' | 'outline';
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
-export const Button: React.FC<ButtonProps> = ({ title, variant = 'primary', style, textStyle, ...props }) => {
+export const Button: React.FC<ButtonProps> = ({ title, variant = 'primary', style, leftIcon, rightIcon, textStyle, ...props }) => {
   const getBackgroundColor = () => {
     switch (variant) {
       case 'primary': return colors.primary;
@@ -39,22 +41,37 @@ export const Button: React.FC<ButtonProps> = ({ title, variant = 'primary', styl
       activeOpacity={0.8}
       {...props}
     >
-      <Text style={[styles.text, { color: getTextColor() }, textStyle]}>
-        {title}
-      </Text>
+      <View style={styles.leftIcon}>
+        {leftIcon}
+        <Text style={[styles.text, { color: getTextColor() }, textStyle]}>
+          {title}
+        </Text>
+      </View>
+      <View style={styles.rightIcon}>
+        {rightIcon}
+      </View>
     </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: spacing.m,
-    paddingHorizontal: spacing.l,
+    // paddingVertical: spacing.s,
+    // paddingHorizontal: spacing.l,
     borderRadius: 30,
-    alignItems: 'center',
+    // alignItems: 'center',
     justifyContent: 'center',
   },
   text: {
     ...typography.button,
+  },
+  leftIcon: {
+    flexDirection: 'row',
+    // alignItems: "center",
+    justifyContent: "center",
+    gap: hp(1),
+  },
+  rightIcon: {
+    marginRight: hp(2),
   },
 });

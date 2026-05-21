@@ -1,13 +1,42 @@
-import React from 'react';
-import { View, StyleSheet, Image, Text, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { colors } from '../../../enums/colors';
-import { spacing } from '../../../enums/spacing';
+import React, { useState } from 'react';
+import { View, StyleSheet, Image, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
+import { useTheme } from '../../../hooks/useTheme';
+import { useStyles } from '../../../hooks/useStyles';
+import { ThemeColors } from '../../../enums/colors';
+import { hp, spacing, wp } from '../../../enums/spacing';
 import { typography } from '../../../enums/typography';
 import { Button } from '../../../common/components/Button';
 import { Input } from '../../../common/components/Input';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from '../../../hooks/useTranslation';
+import { useAuth } from '../../../context/AuthContext';
+import { AppText } from '../../../common/components/Typography/Typography';
 
 const SignupScreen = ({ navigation }: any) => {
+  const { colors } = useTheme();
+  const { t } = useTranslation();
+  const styles = useStyles(createStyles);
+  const { updateProfile } = useAuth();
+
+  const [name, setName] = useState('');
+  const [location, setLocation] = useState('');
+
+  const handleSignup = async () => {
+    if (!name.trim() || !location.trim()) {
+      Alert.alert(t('Error'), t('fill_all_fields'));
+      return;
+    }
+    try {
+      await updateProfile({
+        displayName: name,
+        location: location,
+      });
+    } catch (err: any) {
+      console.error('Failed to complete user signup:', err);
+      Alert.alert(t('Error'), err.message || t('failed_to_send_request'));
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -17,25 +46,32 @@ const SignupScreen = ({ navigation }: any) => {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
             <Image
-              source={require('../../../assets/images/logo-ziuu.png')}
+              source={require('../../../assets/images/logo.png')}
               style={styles.logo}
               resizeMode="contain"
             />
-            <Text style={styles.welcomeText}>Create An Account</Text>
+            <AppText style={styles.welcomeText}>{t('createAccount')}</AppText>
           </View>
 
           <View style={styles.formContainer}>
-            <Text style={styles.tabText}>Sign Up</Text>
+            <AppText style={styles.tabText}>{t('signUp')}</AppText>
 
             <View style={styles.inputSection}>
               <Input
-                label="Name"
-                placeholder="Enter your name"
+                label={t('name')}
+                placeholder={t('enterName')}
+                value={name}
+                onChangeText={setName}
+                inputContainerStyle={styles.inputContainer}
+                placeholderTextColor={colors.textSecondary}
               />
               <Input
-                label="Location"
-                placeholder="Enter your location"
-              // Ideally add icon here
+                label={t('location')}
+                placeholder={t('enterLocation')}
+                value={location}
+                onChangeText={setLocation}
+                inputContainerStyle={styles.inputContainer}
+                placeholderTextColor={colors.textSecondary}
               />
             </View>
           </View>
@@ -43,9 +79,10 @@ const SignupScreen = ({ navigation }: any) => {
 
         <View style={styles.bottomContainer}>
           <Button
-            title="Sign Up"
+            title={t('signUp')}
             variant="primary"
-            onPress={() => navigation.navigate('Home')}
+            onPress={handleSignup}
+            style={styles.signupBtn}
           />
         </View>
       </KeyboardAvoidingView>
@@ -53,7 +90,7 @@ const SignupScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
@@ -95,6 +132,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.l,
     paddingBottom: spacing.xl,
     paddingTop: spacing.m,
+  },
+  signupBtn: {
+    height: hp(6)
+  },
+  inputContainer: {
+    backgroundColor: colors.inputBackground,
+    borderRadius: 25,
+    paddingHorizontal: wp(2.5),
   },
 });
 

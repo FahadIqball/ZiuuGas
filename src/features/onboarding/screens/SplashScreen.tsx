@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, ImageBackground, Image } from 'react-native';
-import { colors } from '../../../enums/colors';
+import { Routes } from '../../../constants/routes';
 
 const SplashScreen = ({ navigation }: any) => {
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigation.replace('Onboarding');
+      navigation.replace(Routes.ONBOARDING);
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -18,7 +18,7 @@ const SplashScreen = ({ navigation }: any) => {
     >
       <View style={styles.overlay}>
         <Image
-          source={require('../../../assets/images/logo-ziuu.png')}
+          source={require('../../../assets/images/logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />
