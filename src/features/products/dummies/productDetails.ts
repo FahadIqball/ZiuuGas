@@ -28,6 +28,8 @@ export interface ProductDetails {
     description: string;
     seller: SellerInfo;
     reviews: Review[];
+    productKey?: string;
+    weight?: string;
 }
 
 export const MOCK_PRODUCT_DETAILS: ProductDetails = {

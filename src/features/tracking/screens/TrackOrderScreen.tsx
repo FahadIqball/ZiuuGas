@@ -45,13 +45,14 @@ const TrackOrderScreen = ({ route }: any) => {
 
                 <View style={styles.storeCardSection}>
                     <MapCard
-                        title={t('gas_cylinder_store')}
+                        title={trackingData.storeName || t('gas_cylinder_store')}
                         time={trackingData.estimatedDelivery}
-                        rating="4.5"
-                        price="20"
-                        image={IMAGES.CYLINDER_STORE}
+                        rating={trackingData.rating || '4.5'}
+                        price={trackingData.price || '20'}
+                        image={trackingData.storeImage ? { uri: trackingData.storeImage } : IMAGES.CYLINDER_STORE}
                         buttonText={t('view_details')}
                         onPress={() => { }}
+                        orderCode={trackingData.orderCode}
                     />
                 </View>
 

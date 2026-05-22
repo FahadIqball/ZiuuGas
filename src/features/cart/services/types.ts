@@ -6,4 +6,6 @@ export interface CartItem {
   quantity: number;
   rating?: number;
   sellerId?: string;
+  productKey?: string;
+  weight?: string;
 }

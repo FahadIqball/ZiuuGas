@@ -26,9 +26,17 @@ export const useOrders = () => {
             
             const mapped = list.map(order => {
                 const firstItem = order.items[0];
+                const rawTitle = firstItem?.title || 'Gas Order';
+                const parts = rawTitle.split(' ');
+                const fallbackKey = parts[0] ? parts[0].toLowerCase() : 'gas_cylinder';
+                const fallbackWeight = parts.slice(1).join(' ');
+
                 return {
                     id: order.id,
-                    title: firstItem?.title || 'Gas Order',
+                    title: rawTitle,
+                    productKey: firstItem?.productKey || fallbackKey,
+                    weight: firstItem?.weight || fallbackWeight,
+                    subtitleKey: order.status === 'delivered' ? 'delivered' : order.status,
                     subtitle: order.status === 'delivered' ? t('delivered_tab') : t(order.status as any),
                     image: resolveProductImage(firstItem?.image),
                     price: firstItem?.price ? firstItem.price.toString() : '20',

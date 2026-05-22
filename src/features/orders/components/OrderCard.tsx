@@ -13,18 +13,16 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { TxKeyPath } from '../../../context/LanguageContext';
 
 interface OrderCardProps {
-  title: string;
-  subtitle: string;
+  productKey: string;
+  weight: string;
+  subtitleKey: string;
   image: any;
   buttonText: string;
   onPress?: () => void;
 }
 
-export const OrderCard: React.FC<OrderCardProps> = ({ title, subtitle, image, buttonText, onPress }) => {
+export const OrderCard: React.FC<OrderCardProps> = ({ productKey, weight, subtitleKey, image, buttonText, onPress }) => {
   const navigation = useNavigation<any>();
-  const parts = title.split(' ');
-  const mainTitle = parts[0];
-  const weight = parts.slice(1).join(' ');
   const { colors } = useTheme();
   const styles = useStyles(createStyles);
   const { t } = useTranslation();
@@ -41,15 +39,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({ title, subtitle, image, bu
         </View>
         <View style={styles.textContainer}>
           <View style={styles.titleRow}>
-            <AppText variant="weight" color={colors.secondary}>{t(mainTitle as TxKeyPath)} </AppText>
+            <AppText variant="weight" color={colors.secondary}>{t(productKey as TxKeyPath)} </AppText>
             <AppText variant="kg" color={colors.primary}>{weight}</AppText>
           </View>
           <AppText variant="product" color={colors.textSecondary}>
-            {(() => {
-              const lowerKey = subtitle.toLowerCase();
-              const trans = t(lowerKey as TxKeyPath);
-              return trans === lowerKey ? subtitle : trans;
-            })()}
+            {t(subtitleKey as TxKeyPath)}
           </AppText>
         </View>
       </View>

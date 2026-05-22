@@ -30,4 +30,14 @@ export enum Routes {
   PAYMENT_SUCCESS = 'PaymentSuccessScreen',
   TRACK_ORDER = 'TrackOrderScreen',
   SELLER_INVENTORY = 'SellerInventory',
+
+  // Partner Screens
+  PARTNER_HOME = 'PartnerHome',
+  ACTIVE_DELIVERIES = 'ActiveDeliveries',
+  DELIVERY_CONFIRMATION = 'DeliveryConfirmation',
+  PARTNER_EARNINGS = 'PartnerEarnings',
+
+  // Promoter Screens
+  PROMOTER_HOME = 'PromoterHome',
+  PROMOTER_PAYOUTS = 'PromoterPayouts',
 }

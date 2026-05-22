@@ -4,6 +4,9 @@ import { Button } from '../../../common/components/Button';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { GoogleIcon } from './GoogleIcon';
 import { hp, spacing } from '../../../enums/spacing';
+import { useTheme } from '../../../hooks/useTheme';
+import { useStyles } from '../../../hooks/useStyles';
+import { ThemeColors } from '../../../enums/colors';
 
 interface GoogleSignInButtonProps {
   onPress: () => void;
@@ -17,6 +20,8 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   style,
 }) => {
   const { t } = useTranslation();
+  const { colors } = useTheme();
+  const styles = useStyles(createStyles);
 
   return (
     <Button
@@ -31,22 +36,23 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   button: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: colors.border,
+    backgroundColor: colors.white,
     height: hp(6),
     borderRadius: 30,
     elevation: 2,
-    shadowColor: '#000000',
+    shadowColor: colors.secondary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 3,
   },
   text: {
-    color: '#1E293B',
+    color: colors.text,
     fontWeight: '600',
   },
 });
+
 export default GoogleSignInButton;

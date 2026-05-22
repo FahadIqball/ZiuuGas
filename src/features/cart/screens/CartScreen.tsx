@@ -17,34 +17,27 @@ import { AppText } from '../../../common/components/Typography/Typography'
 import { orderRepository } from '../../../services/orderService'
 import { addressRepository } from '../../../services/addressService'
 
+import { useCartStore } from '../../../common/store/useCartStore'
+
 const CartScreen = ({ navigation }: any) => {
     const { colors } = useTheme();
     const styles = useStyles(createStyles);
     const { t } = useTranslation();
     const { user } = useAuth();
-    const [cartItems, setCartItems] = useState<CartItem[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const fetchCartItems = async () => {
-        if (!user) return;
-        setLoading(true);
-        try {
-            const items = await cartRepository.getCartItems(user.uid);
-            setCartItems(items);
-        } catch (err) {
-            console.error('Failed to fetch cart items:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    
+    const { cartItems, isLoading: storeLoading, fetchCartItems, removeFromCart, clearCart } = useCartStore();
+    const [actionLoading, setActionLoading] = useState(false);
+    const loading = storeLoading || actionLoading;
 
     useEffect(() => {
-        fetchCartItems();
-    }, [user]);
+        if (user) {
+            fetchCartItems(user.uid);
+        }
+    }, [user, fetchCartItems]);
 
     const handlePayNow = async () => {
         if (!user || cartItems.length === 0) return;
-        setLoading(true);
+        setActionLoading(true);
         try {
             const totalPrice = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
             
@@ -52,7 +45,7 @@ const CartScreen = ({ navigation }: any) => {
             const defaultAddress = addresses.find(a => a.isDefault) || addresses[0];
             const addressString = defaultAddress 
                 ? `${defaultAddress.street}, ${defaultAddress.city}, ${defaultAddress.state} ${defaultAddress.zipCode}, ${defaultAddress.country}`
-                : 'Default Address';
+                : t('Default_Address');
 
             const newOrder = {
                 userId: user.uid,
@@ -67,6 +60,8 @@ const CartScreen = ({ navigation }: any) => {
                     price: item.price,
                     quantity: item.quantity,
                     image: item.image,
+                    productKey: item.productKey || '',
+                    weight: item.weight || '',
                 })),
                 totalPrice,
                 status: 'order_placed' as const,
@@ -75,20 +70,19 @@ const CartScreen = ({ navigation }: any) => {
             };
 
             await orderRepository.placeOrder(newOrder);
-            await cartRepository.clearCart(user.uid);
+            await clearCart(user.uid);
             navigation.navigate(Routes.PAYMENT_SUCCESS);
         } catch (err) {
             console.error('Checkout failed:', err);
         } finally {
-            setLoading(false);
+            setActionLoading(false);
         }
     };
 
     const handleDelete = async (id: string) => {
         if (!user) return;
         try {
-            await cartRepository.removeFromCart(user.uid, id);
-            setCartItems(prev => prev.filter(item => item.id !== id));
+            await removeFromCart(user.uid, id);
         } catch (err) {
             console.error('Failed to delete cart item:', err);
         }
@@ -112,7 +106,7 @@ const CartScreen = ({ navigation }: any) => {
                     {cartItems.length === 0 ? (
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                             <AppText style={{ color: colors.textSecondary, textAlign: 'center' }}>
-                                Your cart is empty.
+                                {t('cart_empty')}
                             </AppText>
                         </View>
                     ) : (

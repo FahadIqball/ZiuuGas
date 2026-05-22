@@ -18,9 +18,10 @@ interface MapCardProps {
     image: any;
     buttonText: string;
     onPress?: () => void;
+    orderCode?: string;
 }
 
-export const MapCard: React.FC<MapCardProps> = ({ title, time, rating, price, image, buttonText, onPress }) => {
+export const MapCard: React.FC<MapCardProps> = ({ title, time, rating, price, image, buttonText, onPress, orderCode }) => {
     const { colors } = useTheme();
     const styles = useStyles(createStyles);
     const { t } = useTranslation();
@@ -60,7 +61,7 @@ export const MapCard: React.FC<MapCardProps> = ({ title, time, rating, price, im
 
                         <View style={styles.paymentRow}>
                             <AppText style={styles.orderText}>
-                                {t('order_no')} <AppText style={styles.priceValue}>#124565</AppText>
+                                {t('order_no')} <AppText style={styles.priceValue}>{orderCode ? `#${orderCode}` : ''}</AppText>
                             </AppText>
                         </View>
                     </View>

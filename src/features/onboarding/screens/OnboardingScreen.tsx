@@ -5,13 +5,14 @@ import { typography } from '../../../enums/typography';
 import { Button } from '../../../common/components/Button';
 import { Routes } from '../../../constants/routes';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { useTheme } from '../../../hooks/useTheme';
+import { useStyles } from '../../../hooks/useStyles';
+import { ThemeColors } from '../../../enums/colors';
 
 const OnboardingScreen = ({ navigation }: any) => {
   const { t } = useTranslation();
-
-  const handleLogin = () => {
-    navigation.navigate(Routes.LOGIN);
-  };
+  const { colors } = useTheme();
+  const styles = useStyles(createStyles);
 
   return (
     <ImageBackground
@@ -28,13 +29,13 @@ const OnboardingScreen = ({ navigation }: any) => {
             />
             <Text style={styles.title}>{t('joinAs')}</Text>
           </View>
-
+ 
           <View style={styles.buttonContainer}>
             <Button
               title={t('user')}
               variant="primary"
               style={styles.button}
-              onPress={handleLogin}
+              onPress={() => navigation.navigate(Routes.LOGIN, { targetRole: 'user' })}
             />
             <Button
               title={t('store')}
@@ -46,13 +47,13 @@ const OnboardingScreen = ({ navigation }: any) => {
               title={t('partner')}
               variant="secondary"
               style={styles.button}
-              onPress={() => Alert.alert(t('partner'), t('coming_soon'))}
+              onPress={() => navigation.navigate(Routes.LOGIN, { targetRole: 'partner' })}
             />
             <Button
               title={t('promoter')}
               variant="secondary"
               style={styles.button}
-              onPress={() => Alert.alert(t('promoter'), t('coming_soon'))}
+              onPress={() => navigation.navigate(Routes.LOGIN, { targetRole: 'promoter' })}
             />
           </View>
         </View>
@@ -61,7 +62,7 @@ const OnboardingScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   background: {
     flex: 1,
     width: '100%',
@@ -88,7 +89,7 @@ const styles = StyleSheet.create({
   },
   title: {
     ...typography.h2,
-    color: '#ffffff',
+    color: colors.white,
   },
   buttonContainer: {
     rowGap: spacing.m,
@@ -100,3 +101,4 @@ const styles = StyleSheet.create({
 });
 
 export default OnboardingScreen;
+

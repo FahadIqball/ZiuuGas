@@ -15,14 +15,15 @@ import { AppText } from '../../../common/components/Typography/Typography';
 import { useLogin } from '../hooks/useLogin';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 
-const LoginScreen = ({ navigation }: any) => {
+const LoginScreen = ({ route, navigation }: any) => {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const styles = useStyles(createStyles);
   const { signInWithGoogle, loading, error } = useLogin();
+  const { targetRole = 'user' } = route.params || {};
 
   const OTPVerification = () => {
-    navigation.navigate(Routes.OTP_VERIFICATION);
+    navigation.navigate(Routes.OTP_VERIFICATION, { targetRole });
   };
 
   return (
@@ -65,7 +66,7 @@ const LoginScreen = ({ navigation }: any) => {
           )}
 
           <GoogleSignInButton
-            onPress={signInWithGoogle}
+            onPress={() => signInWithGoogle(targetRole)}
             loading={loading}
             style={styles.googleButton}
           />

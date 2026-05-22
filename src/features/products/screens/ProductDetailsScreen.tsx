@@ -16,7 +16,7 @@ import { QuantitySelector } from '../components/QuantitySelector';
 import { ReviewsCard } from '../../orders/components/ReviewsCard';
 import { AddressModal } from '../components/addressModal';
 import { useAuth } from '../../../context/AuthContext';
-import { cartRepository } from '../../../services/cartService';
+import { useCartStore } from '../../../common/store/useCartStore';
 
 const ProductDetailsScreen = ({ route, navigation }: any) => {
     const { colors } = useTheme();
@@ -27,6 +27,7 @@ const ProductDetailsScreen = ({ route, navigation }: any) => {
     const { user } = useAuth();
     const [quantity, setQuantity] = useState(1);
     const [addressModalVisible, setAddressModalVisible] = useState(false);
+    const { addToCart } = useCartStore();
 
     const handleIncrement = () => setQuantity(q => q + 1);
     const handleDecrement = () => setQuantity(q => (q > 1 ? q - 1 : 1));
@@ -34,7 +35,7 @@ const ProductDetailsScreen = ({ route, navigation }: any) => {
     const handleBuyNow = async () => {
         if (!user || !product) return;
         try {
-            await cartRepository.addToCart(user.uid, {
+            await addToCart(user.uid, {
                 id: product.id,
                 title: product.name,
                 price: parseFloat(product.price) || 0,
@@ -42,11 +43,13 @@ const ProductDetailsScreen = ({ route, navigation }: any) => {
                 quantity,
                 rating: product.rating,
                 sellerId: product.sellerId,
+                productKey: product.productKey,
+                weight: product.weight,
             });
             setAddressModalVisible(true);
         } catch (err) {
             console.error('Failed to add to cart:', err);
-            Alert.alert('Error', 'Could not add item to cart.');
+            Alert.alert(t('Error'), t('could_not_add_to_cart'));
         }
     }
 

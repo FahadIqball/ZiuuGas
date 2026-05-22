@@ -20,6 +20,14 @@ import DeliveryPersonScreen from '../features/profile/screens/DeliveryPersonScre
 import AddDeliveryPersonScreen from '../features/profile/screens/AddDeliveryPersonScreen';
 
 
+import PartnerHomeScreen from '../features/partner/screens/PartnerHomeScreen';
+import ActiveDeliveriesScreen from '../features/partner/screens/ActiveDeliveriesScreen';
+import DeliveryConfirmationScreen from '../features/partner/screens/DeliveryConfirmationScreen';
+import PartnerEarningsScreen from '../features/partner/screens/PartnerEarningsScreen';
+import PromoterHomeScreen from '../features/promoter/screens/PromoterHomeScreen';
+import PromoterPayoutsScreen from '../features/promoter/screens/PromoterPayoutsScreen';
+
+
 const Stack = createNativeStackNavigator();
 
 const MainStack = () => {
@@ -42,6 +50,16 @@ const MainStack = () => {
       <Stack.Screen name={Routes.SEND_OFFER} component={SendOffer} />
       <Stack.Screen name={Routes.DELIVERY_PERSON} component={DeliveryPersonScreen} />
       <Stack.Screen name={Routes.ADD_DELIVERY_PERSON} component={AddDeliveryPersonScreen} />
+      
+      {/* Partner Screens */}
+      <Stack.Screen name={Routes.PARTNER_HOME} component={PartnerHomeScreen} />
+      <Stack.Screen name={Routes.ACTIVE_DELIVERIES} component={ActiveDeliveriesScreen} />
+      <Stack.Screen name={Routes.DELIVERY_CONFIRMATION} component={DeliveryConfirmationScreen} />
+      <Stack.Screen name={Routes.PARTNER_EARNINGS} component={PartnerEarningsScreen} />
+
+      {/* Promoter Screens */}
+      <Stack.Screen name={Routes.PROMOTER_HOME} component={PromoterHomeScreen} />
+      <Stack.Screen name={Routes.PROMOTER_PAYOUTS} component={PromoterPayoutsScreen} />
     </Stack.Navigator>
   );
 };

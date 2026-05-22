@@ -76,7 +76,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             let needsUpdate = false;
             let updatedFields: Partial<UserProfile> = {};
 
-            if (pendingRole && profile.role !== pendingRole) {
+            if (!profile.role) {
+              updatedFields.role = pendingRole || 'user';
+              needsUpdate = true;
+            } else if (pendingRole && pendingRole !== 'user' && profile.role !== pendingRole) {
               updatedFields.role = pendingRole;
               needsUpdate = true;
             }
@@ -193,19 +196,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       try {
         const mockUid = 'mock-uid';
+        let existingProfile: Partial<UserProfile> = {};
+        let registry: Record<string, UserProfile> = {};
+        try {
+          const registryStr = storage.getString(STORAGE_KEYS.MOCK_USER_REGISTRY);
+          if (registryStr) {
+            registry = JSON.parse(registryStr);
+            if (registry[role]) {
+              existingProfile = registry[role];
+            }
+          }
+        } catch (err) {
+          console.error('Failed to read mock user registry:', err);
+        }
+
         const mockProfile: UserProfile = {
           uid: mockUid,
           email: 'mockuser@example.com',
-          displayName: extraProfile?.displayName || '',
+          displayName: extraProfile?.displayName || existingProfile.displayName || '',
           photoURL: null,
           role: role,
-          cnpj: extraProfile?.cnpj,
-          address: extraProfile?.address,
-          location: extraProfile?.location,
-          areaInKm: extraProfile?.areaInKm,
-          createdAt: new Date().toISOString(),
+          cnpj: extraProfile?.cnpj || existingProfile.cnpj,
+          address: extraProfile?.address || existingProfile.address,
+          location: extraProfile?.location || existingProfile.location,
+          areaInKm: extraProfile?.areaInKm || existingProfile.areaInKm,
+          createdAt: existingProfile.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
+
+        registry[role] = mockProfile;
+        storage.set(STORAGE_KEYS.MOCK_USER_REGISTRY, JSON.stringify(registry));
+
         setUser(mockProfile);
         storage.set('USER_PROFILE', JSON.stringify(mockProfile));
         storage.set(STORAGE_KEYS.IS_AUTHENTICATED, true);
@@ -236,6 +257,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const currentUser = await authRepository.getCurrentUser();
         if (currentUser) {
           await userRepository.updateUserProfile(user.uid, profileUpdate);
+        }
+      } else {
+        // If mock mode, write update to the mock user registry too
+        const activeRole = updatedUser.role || 'user';
+        try {
+          const registryStr = storage.getString(STORAGE_KEYS.MOCK_USER_REGISTRY);
+          const registry = registryStr ? JSON.parse(registryStr) : {};
+          registry[activeRole] = updatedUser;
+          storage.set(STORAGE_KEYS.MOCK_USER_REGISTRY, JSON.stringify(registry));
+        } catch (err) {
+          console.error('Failed to update mock registry in updateProfile:', err);
         }
       }
       

@@ -91,8 +91,9 @@ const OrdersScreen: React.FC = ({ navigation }: any) => {
                         keyExtractor={(item) => item.id}
                         renderItem={({ item }) => (
                             <OrderCard
-                                title={item.title}
-                                subtitle={item.subtitle}
+                                productKey={item.productKey}
+                                weight={item.weight}
+                                subtitleKey={item.subtitleKey}
                                 image={item.image}
                                 buttonText={item.buttonText}
                                 onPress={() => navigateToOrderDetails(item)}

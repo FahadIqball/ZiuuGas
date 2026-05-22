@@ -6,6 +6,8 @@ export interface OrderItem {
   price: number;
   quantity: number;
   image: string;
+  productKey?: string;
+  weight?: string;
 }
 
 export interface Order {
@@ -24,6 +26,8 @@ export interface Order {
   sellerName?: string;
   sellerImage?: string;
   sellerRating?: string;
+  riderId?: string;
+  payout?: number;
   createdAt: any;
   updatedAt: any;
 }

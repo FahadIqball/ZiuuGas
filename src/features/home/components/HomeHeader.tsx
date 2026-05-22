@@ -90,7 +90,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#0086FF',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -104,10 +104,10 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#FF4D4F',
+    backgroundColor: colors.error,
     zIndex: 1,
     borderWidth: 1.5,
-    borderColor: '#0086FF',
+    borderColor: colors.primary,
   },
 });
 

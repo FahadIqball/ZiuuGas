@@ -4,6 +4,17 @@ import { UserProfile, UserRole } from './types';
 
 const USERS_COLLECTION = 'users';
 
+const removeUndefined = <T extends object>(obj: T): Partial<T> => {
+  const result: any = {};
+  Object.keys(obj).forEach((key) => {
+    const val = (obj as any)[key];
+    if (val !== undefined) {
+      result[key] = val;
+    }
+  });
+  return result;
+};
+
 export class FirebaseUserRepository implements UserRepository {
   async getUserProfile(uid: string): Promise<UserProfile | null> {
     try {
@@ -34,8 +45,9 @@ export class FirebaseUserRepository implements UserRepository {
         createdAt: now,
         updatedAt: now,
       };
-      await firestore().collection(USERS_COLLECTION).doc(uid).set(newProfile);
-      return newProfile;
+      const cleanedProfile = removeUndefined(newProfile) as UserProfile;
+      await firestore().collection(USERS_COLLECTION).doc(uid).set(cleanedProfile);
+      return cleanedProfile;
     } catch (error) {
       console.error('FirebaseUserRepository.createUserProfile failed:', error);
       throw error;
@@ -45,8 +57,9 @@ export class FirebaseUserRepository implements UserRepository {
   async updateUserProfile(uid: string, profile: Partial<UserProfile>): Promise<void> {
     try {
       const now = new Date().toISOString();
+      const cleanedProfile = removeUndefined(profile);
       await firestore().collection(USERS_COLLECTION).doc(uid).update({
-        ...profile,
+        ...cleanedProfile,
         updatedAt: now,
       });
     } catch (error) {

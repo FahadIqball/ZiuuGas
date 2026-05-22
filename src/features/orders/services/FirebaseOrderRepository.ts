@@ -43,6 +43,8 @@ export class FirebaseOrderRepository implements OrderRepository {
       sellerName: data.sellerName || '',
       sellerImage: data.sellerImage || '',
       sellerRating: data.sellerRating || '4.5',
+      riderId: data.riderId || '',
+      payout: Number(data.payout) || 0,
       createdAt: data.createdAt && typeof data.createdAt.toDate === 'function' ? data.createdAt.toDate() : data.createdAt || null,
       updatedAt: data.updatedAt && typeof data.updatedAt.toDate === 'function' ? data.updatedAt.toDate() : data.updatedAt || null,
     };

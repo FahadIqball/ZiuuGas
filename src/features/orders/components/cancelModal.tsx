@@ -95,7 +95,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
         alignItems: 'center',
     },
     rejectButton: {
-        backgroundColor: '#E8EBF0',
+        backgroundColor: colors.lightGray,
     },
     acceptButton: {
         backgroundColor: colors.primary,

@@ -35,6 +35,8 @@ export const useProductDetails = (productId?: string) => {
                         imageRaw: fetchedProduct.image,
                         sellerId: fetchedProduct.sellerId,
                         description: fetchedProduct.description || '',
+                        productKey: fetchedProduct.subtitle || 'gas_cylinder',
+                        weight: fetchedProduct.weight || '',
                         seller: {
                             name: fetchedProduct.seller?.name || 'Gas Store',
                             avatar: fetchedProduct.seller?.avatar || IMAGES.CYLINDER_STORE,

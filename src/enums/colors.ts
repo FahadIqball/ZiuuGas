@@ -9,6 +9,7 @@ export const lightColors = {
   border: '#e0e0e0',
   error: '#ff3333',
   whatsapp: '#8E9AAF',
+  whatsappBrand: '#25D366',
   orange: '#ff8a00',
   otpEmpty: '#e0eaff',
   otpFilled: '#0084ff',
@@ -31,6 +32,7 @@ export const darkColors: typeof lightColors = {
   border: '#2E2E33',
   error: '#FF4D4D',
   whatsapp: '#8E9AAF',
+  whatsappBrand: '#25D366',
   orange: '#FFA024',
   otpEmpty: '#2E2E33',
   otpFilled: '#0084ff',
@@ -44,4 +46,5 @@ export const darkColors: typeof lightColors = {
 
 export const colors = lightColors;
 export type ThemeColors = typeof lightColors;
+
 

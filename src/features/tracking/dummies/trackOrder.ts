@@ -11,6 +11,10 @@ export interface TrackingDetails {
     currentStatus: OrderStatus;
     orderCode: string;
     estimatedDelivery: string;
+    price?: string;
+    rating?: string;
+    storeName?: string;
+    storeImage?: string;
 }
 
 export const MOCK_TRACKING_DETAILS: TrackingDetails = {

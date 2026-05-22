@@ -180,11 +180,11 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
         if (order.id) {
             try {
                 await orderRepository.updateOrderStatus(order.id, 'cancelled');
-                Alert.alert(t('Success'), 'Order cancelled successfully.');
+                Alert.alert(t('Success'), t('order_cancelled_success'));
                 navigation.goBack();
             } catch (err) {
                 console.error('Failed to cancel order:', err);
-                Alert.alert('Error', 'Failed to cancel order.');
+                Alert.alert(t('Error'), t('failed_to_cancel_order'));
             }
         }
     };
@@ -194,11 +194,11 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
         if (order.id) {
             try {
                 await orderRepository.updateOrderStatus(order.id, 'delivered');
-                Alert.alert(t('Success'), 'Order delivered successfully.');
+                Alert.alert(t('Success'), t('order_delivered_success_alert'));
                 navigation.goBack();
             } catch (err) {
                 console.error('Failed to update status:', err);
-                Alert.alert('Error', 'Failed to update order status.');
+                Alert.alert(t('Error'), t('failed_to_update_order_status'));
             }
         }
     };

@@ -12,13 +12,14 @@ import { Routes } from '../../../constants/routes';
 import { AppText } from '../../../common/components/Typography/Typography';
 import { useAuth } from '../../../context/AuthContext';
 
-const OTPVerificationScreen = ({ navigation }: any) => {
+const OTPVerificationScreen = ({ route, navigation }: any) => {
   const [otp, setOtp] = useState(['4', '6', '', '']);
   const inputs = useRef<Array<TextInput | null>>([]);
   const { colors } = useTheme();
   const { t } = useTranslation();
   const styles = useStyles(createStyles);
   const { login } = useAuth();
+  const { targetRole = 'user' } = route.params || {};
 
   const handleOtpChange = (value: string, index: number) => {
     const newOtp = [...otp];
@@ -38,7 +39,7 @@ const OTPVerificationScreen = ({ navigation }: any) => {
 
   const handleVerifyCode = async () => {
     try {
-      await login('user');
+      await login(targetRole);
     } catch (err) {
       console.error('OTP verify login failed:', err);
     }
@@ -164,7 +165,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   otpInputFilled: {
     backgroundColor: colors.otpFilled,
-    color: '#ffffff',
+    color: colors.white,
   },
   verifyButton: {
     width: '100%',
