@@ -10,6 +10,8 @@ export interface UserProfile {
   address?: string;
   location?: string;
   areaInKm?: number;
+  storeId?: string | null;
+  isOnline?: boolean;
   createdAt: string;
   updatedAt: string;
 }

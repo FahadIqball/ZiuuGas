@@ -11,13 +11,16 @@ import { hp, wp } from '../../../enums/spacing';
 import { FONT } from '../../../enums/typography';
 
 import { useAuth } from '../../../context/AuthContext';
+import { useNotification } from '../../../context/NotificationContext';
 
 export const ProfileHeader: React.FC = () => {
     const navigation = useNavigation<any>();
     const { userRole, user } = useAuth();
+    const { unreadCount } = useNotification();
     const isSeller = userRole === 'seller';
     const { colors } = useTheme();
     const styles = useStyles(createStyles);
+    const hasUnread = unreadCount > 0;
 
     return (
         <View style={styles.container}>
@@ -37,7 +40,7 @@ export const ProfileHeader: React.FC = () => {
                 activeOpacity={0.8}
                 onPress={() => navigation.navigate(isSeller ? Routes.SELLER_NOTIFICATIONS : Routes.NOTIFICATIONS)}
             >
-                <View style={styles.dot} />
+                {hasUnread && <View style={styles.dot} />}
                 <SVG.Bell style={styles.bellIcon} />
             </TouchableOpacity>
         </View>

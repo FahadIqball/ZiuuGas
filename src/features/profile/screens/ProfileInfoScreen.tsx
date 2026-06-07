@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ScrollView, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
 import { hp, wp, spacing } from '../../../enums/spacing';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { ScreenHeader } from '../../../common/components/ScreenHeader';
@@ -12,10 +12,11 @@ import { ThemeColors } from '../../../enums/colors';
 import { FONT, typography } from '../../../enums/typography';
 import { useAuth } from '../../../context/AuthContext';
 import { AreaSlider } from '../../../common/components/AreaSlider';
-import { IMAGES } from '../../../assets';
+import { IMAGES, SVG } from '../../../assets';
 import { AppText } from '../../../common/components/Typography/Typography';
-import { Image } from 'react-native';
 import { userRepository } from '../../../services/authService';
+import { imageStorageRepository } from '../../../services/imageStorageService';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 const ProfileInfoScreen = () => {
     const { colors } = useTheme();
@@ -29,6 +30,7 @@ const ProfileInfoScreen = () => {
     const [location, setLocation] = useState('');
     const [email, setEmail] = useState('');
     const [areaInKm, setAreaInKm] = useState(15);
+    const [photoURL, setPhotoURL] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +40,7 @@ const ProfileInfoScreen = () => {
             setLocation(user.address || '');
             setEmail(user.email || '');
             setAreaInKm(user.areaInKm || 15);
+            setPhotoURL(user.photoURL || null);
         }
     }, [user]);
 
@@ -49,9 +52,22 @@ const ProfileInfoScreen = () => {
             setLocation(user.address || '');
             setEmail(user.email || '');
             setAreaInKm(user.areaInKm || 15);
+            setPhotoURL(user.photoURL || null);
         }
         setIsEditing(false);
         setError(null);
+    };
+
+    const handlePhotoPick = async () => {
+        if (!isEditing) return;
+        const result = await launchImageLibrary({
+            mediaType: 'photo',
+            quality: 0.8,
+        });
+
+        if (result.assets && result.assets[0].uri) {
+            setPhotoURL(result.assets[0].uri);
+        }
     };
 
     const handleDone = async () => {
@@ -59,11 +75,19 @@ const ProfileInfoScreen = () => {
         setLoading(true);
         setError(null);
         try {
+            let uploadedPhotoUrl = user.photoURL || null;
+            if (photoURL && !photoURL.startsWith('http')) {
+                uploadedPhotoUrl = await imageStorageRepository.uploadFile(photoURL, 'profiles');
+            } else if (photoURL) {
+                uploadedPhotoUrl = photoURL;
+            }
+
             await userRepository.updateUserProfile(user.uid, {
                 displayName: name,
                 address: location,
                 email: email,
                 areaInKm: areaInKm,
+                photoURL: uploadedPhotoUrl,
             });
             setIsEditing(false);
         } catch (err: any) {
@@ -89,6 +113,24 @@ const ProfileInfoScreen = () => {
                 {error && (
                     <AppText style={styles.errorText}>{error}</AppText>
                 )}
+
+                <View style={styles.avatarSection}>
+                    <TouchableOpacity
+                        activeOpacity={isEditing ? 0.7 : 1}
+                        onPress={handlePhotoPick}
+                        style={styles.avatarWrapper}
+                    >
+                        <Image
+                            source={photoURL ? { uri: photoURL } : IMAGES.MAN1}
+                            style={styles.avatarImage}
+                        />
+                        {isEditing && (
+                            <View style={styles.editBadge}>
+                                <SVG.Edit width={hp(2)} height={hp(2)} stroke={colors.white} />
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                </View>
 
                 <Card style={styles.card}>
                     <Input
@@ -227,5 +269,34 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
         textAlign: 'center',
         marginBottom: spacing.m,
         ...typography.body,
+    },
+    avatarSection: {
+        alignItems: 'center',
+        marginVertical: hp(2),
+    },
+    avatarWrapper: {
+        position: 'relative',
+        borderRadius: hp(6),
+        borderWidth: 2,
+        borderColor: colors.primary,
+        padding: 3,
+    },
+    avatarImage: {
+        width: hp(12),
+        height: hp(12),
+        borderRadius: hp(6),
+    },
+    editBadge: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: colors.primary,
+        width: hp(4),
+        height: hp(4),
+        borderRadius: hp(2),
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: colors.white,
     },
 });

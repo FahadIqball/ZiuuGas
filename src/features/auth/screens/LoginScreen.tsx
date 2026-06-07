@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, Image, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, Image, KeyboardAvoidingView, Platform, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../hooks/useTheme';
 import { useStyles } from '../../../hooks/useStyles';
@@ -19,8 +19,42 @@ const LoginScreen = ({ route, navigation }: any) => {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const styles = useStyles(createStyles);
-  const { signInWithGoogle, loading, error } = useLogin();
+  const { signInWithGoogle, signInWithEmail, registerWithEmail, loading, error } = useLogin();
   const { targetRole = 'user' } = route.params || {};
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSignup, setIsSignup] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const handleEmailAuth = async () => {
+    setLocalError(null);
+    if (!email.trim() || !password.trim()) {
+      setLocalError(t('fill_all_fields'));
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      setLocalError(t('invalid_email') || 'Please enter a valid email address.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setLocalError(t('weak_password') || 'Password must be at least 6 characters.');
+      return;
+    }
+
+    try {
+      if (isSignup) {
+        await registerWithEmail(email.trim(), password, targetRole);
+      } else {
+        await signInWithEmail(email.trim(), password, targetRole);
+      }
+    } catch (err) {
+      // Errors are handled inside hook and exposed via error variable
+    }
+  };
 
   const OTPVerification = () => {
     navigation.navigate(Routes.OTP_VERIFICATION, { targetRole });
@@ -32,60 +66,95 @@ const LoginScreen = ({ route, navigation }: any) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={styles.header}>
-          <Image
-            source={require('../../../assets/images/logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <AppText style={styles.welcomeText}>{t('welcomeBack')}</AppText>
-        </View>
-
-        <View style={styles.formContainer}>
-          <AppText style={styles.tabText}>{t('login')}</AppText>
-
-          <View style={styles.inputSection}>
-            <Input
-              label={t('numberEmail')}
-              placeholder={t('enterNumberEmail')}
-              style={styles.placeholder}
-              inputContainerStyle={styles.inputContainer}
-              placeholderTextColor={colors.textSecondary}
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+          <View style={styles.header}>
+            <Image
+              source={require('../../../assets/images/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
             />
-            <AppText style={styles.helperText}>
-              {t('loginHelper')}
+            <AppText style={styles.welcomeText}>
+              {isSignup ? t('createAccount') : t('welcomeBack')}
             </AppText>
           </View>
-        </View>
 
-        <View style={styles.bottomContainer}>
-          {error && (
-            <AppText style={styles.errorText}>
-              {error}
+          <View style={styles.formContainer}>
+            <AppText style={styles.tabText}>
+              {isSignup ? t('signUp') : t('login')}
             </AppText>
-          )}
 
-          <GoogleSignInButton
-            onPress={() => signInWithGoogle(targetRole)}
-            loading={loading}
-            style={styles.googleButton}
-          />
+            <View style={styles.inputSection}>
+              <Input
+                label={t('email')}
+                placeholder={t('enterNumberEmail')}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                style={styles.placeholder}
+                inputContainerStyle={styles.inputContainer}
+                placeholderTextColor={colors.textSecondary}
+              />
+              <Input
+                label={t('password') || 'Password'}
+                placeholder={t('enterPassword') || 'Enter Password'}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                style={styles.placeholder}
+                inputContainerStyle={styles.inputContainer}
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
 
-          <View style={styles.actionButtons}>
-            <Button
-              title={t('whatsapp')}
-              variant="whatsapp"
-              style={styles.halfButton}
-              onPress={OTPVerification}
-            />
-            <Button
-              title={t('email')}
-              variant="primary"
-              style={styles.halfButton}
-              onPress={OTPVerification}
-            />
+            {loading ? (
+              <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: spacing.s }} />
+            ) : (
+              <Button
+                title={isSignup ? t('signUp') : t('login')}
+                variant="primary"
+                onPress={handleEmailAuth}
+                style={{ height: hp(6), borderRadius: 25, marginTop: spacing.s }}
+              />
+            )}
+
+            <TouchableOpacity
+              onPress={() => {
+                setIsSignup(!isSignup);
+                setLocalError(null);
+              }}
+              style={{ marginTop: spacing.m, alignItems: 'center' }}
+            >
+              <AppText color={colors.primary} style={{ fontFamily: FONT.medium, fontSize: 13 }}>
+                {isSignup ? t('alreadyHaveAccount') : t('dontHaveAccount')}
+              </AppText>
+            </TouchableOpacity>
           </View>
-        </View>
+
+          <View style={styles.bottomContainer}>
+            {(error || localError) && (
+              <AppText style={styles.errorText}>
+                {localError || error}
+              </AppText>
+            )}
+
+            <GoogleSignInButton
+              onPress={() => signInWithGoogle(targetRole)}
+              loading={loading}
+              style={styles.googleButton}
+            />
+
+            <View style={styles.actionButtons}>
+              <Button
+                title={t('whatsapp')}
+                variant="whatsapp"
+                style={styles.halfButton}
+                onPress={OTPVerification}
+              />
+            </View>
+          </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

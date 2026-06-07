@@ -4,7 +4,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { UserRole } from '../services/types';
 
 export const useLogin = () => {
-  const { loginWithGoogle, error: authError } = useAuth();
+  const { loginWithGoogle, loginWithEmail, signUpWithEmail, error: authError } = useAuth();
   const { t } = useTranslation();
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,10 +32,54 @@ export const useLogin = () => {
     }
   };
 
+  const signInWithEmail = async (email: string, password: string, targetRole?: UserRole) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await loginWithEmail(email, password, targetRole);
+    } catch (err: any) {
+      console.error('useLogin: Email sign in failed:', err);
+      if (err.code === 'auth/invalid-email') {
+        setError(t('invalid_email') || 'Invalid email address.');
+      } else if (err.code === 'auth/user-disabled') {
+        setError(t('user_disabled') || 'This user has been disabled.');
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError(t('invalid_credentials') || 'Invalid email or password.');
+      } else {
+        setError(err.message || 'Login failed.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const registerWithEmail = async (email: string, password: string, targetRole?: UserRole) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await signUpWithEmail(email, password, targetRole);
+    } catch (err: any) {
+      console.error('useLogin: Email sign up failed:', err);
+      if (err.code === 'auth/email-already-in-use') {
+        setError(t('email_already_in_use') || 'That email address is already in use.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError(t('invalid_email') || 'Invalid email address.');
+      } else if (err.code === 'auth/weak-password') {
+        setError(t('weak_password') || 'The password is too weak.');
+      } else {
+        setError(err.message || 'Registration failed.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error: error || authError,
     signInWithGoogle,
+    signInWithEmail,
+    registerWithEmail,
   };
 };
 export default useLogin;

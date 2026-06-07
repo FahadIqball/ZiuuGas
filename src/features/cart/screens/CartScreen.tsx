@@ -16,6 +16,8 @@ import { resolveProductImage } from '../../products/utils/imageResolver'
 import { AppText } from '../../../common/components/Typography/Typography'
 import { orderRepository } from '../../../services/orderService'
 import { addressRepository } from '../../../services/addressService'
+import { userRepository } from '../../../services/authService'
+import { notificationRepository } from '../../../services/notificationService'
 
 import { useCartStore } from '../../../common/store/useCartStore'
 
@@ -47,13 +49,33 @@ const CartScreen = ({ navigation }: any) => {
                 ? `${defaultAddress.street}, ${defaultAddress.city}, ${defaultAddress.state} ${defaultAddress.zipCode}, ${defaultAddress.country}`
                 : t('Default_Address');
 
+            const sellerId = cartItems[0]?.sellerId || 'system_default';
+            let sellerName = '';
+            let sellerImage = '';
+            let sellerRating = '4.5';
+
+            try {
+                if (sellerId && sellerId !== 'system_default') {
+                    const sellerProfile = await userRepository.getUserProfile(sellerId);
+                    if (sellerProfile) {
+                        sellerName = sellerProfile.displayName || '';
+                        sellerImage = sellerProfile.photoURL || '';
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch seller details:', err);
+            }
+
             const newOrder = {
                 userId: user.uid,
                 userName: user.displayName || user.email || 'Jane Doe',
                 userEmail: user.email || '',
                 userPhoto: user.photoURL || '',
                 userAddress: addressString,
-                sellerId: cartItems[0]?.sellerId || 'system_default',
+                sellerId,
+                sellerName,
+                sellerImage,
+                sellerRating,
                 items: cartItems.map(item => ({
                     productId: item.id,
                     title: item.title,
@@ -69,9 +91,36 @@ const CartScreen = ({ navigation }: any) => {
                 estimatedDeliveryMin: '20',
             };
 
-            await orderRepository.placeOrder(newOrder);
+            const orderId = await orderRepository.placeOrder(newOrder);
             await clearCart(user.uid);
-            navigation.navigate(Routes.PAYMENT_SUCCESS);
+
+            // Create notification and send push notification to seller
+            try {
+                const notifTitle = user.displayName || t('user');
+                const notifMsg = `Placed a new order for ${newOrder.items[0]?.title || 'products'}`;
+                const orderNo = ` #${newOrder.orderCode || ''}`;
+                
+                await notificationRepository.createNotification({
+                    recipientId: sellerId,
+                    title: notifTitle,
+                    message: notifMsg,
+                    orderNo,
+                    type: 'order_placed',
+                    orderId,
+                    image: user.photoURL || null,
+                });
+
+                await notificationRepository.sendPushNotification(
+                    sellerId,
+                    notifTitle,
+                    `${notifMsg}${orderNo}`,
+                    { orderId, type: 'order_placed' }
+                );
+            } catch (notifErr) {
+                console.error('Failed to create/send notification to seller:', notifErr);
+            }
+
+            navigation.navigate(Routes.PAYMENT_SUCCESS, { orderId });
         } catch (err) {
             console.error('Checkout failed:', err);
         } finally {

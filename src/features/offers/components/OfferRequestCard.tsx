@@ -20,13 +20,13 @@ interface OfferRequestCardProps {
     onSendOffer?: () => void;
 }
 
-export const OfferRequestCard: React.FC<OfferRequestCardProps> = ({ 
-    title, 
-    subtitle, 
-    image, 
-    userName, 
-    userPhotoURL, 
-    onSendOffer 
+export const OfferRequestCard: React.FC<OfferRequestCardProps> = ({
+    title,
+    subtitle,
+    image,
+    userName,
+    userPhotoURL,
+    onSendOffer
 }) => {
     const { colors } = useTheme();
     const styles = useStyles(createStyles);

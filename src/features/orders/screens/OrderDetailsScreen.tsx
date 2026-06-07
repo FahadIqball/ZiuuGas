@@ -24,24 +24,125 @@ import { Review } from '../../review/services/types'
 import { useFocusEffect } from '@react-navigation/native'
 import firestore from '@react-native-firebase/firestore';
 import { resolveProductImage } from '../../products/utils/imageResolver';
+import { AssignRiderModal } from '../components/AssignRiderModal';
+import { storeRiderRepository } from '../../../services/storeRiderService';
+import { deliveryRepository } from '../../../services/deliveryService';
+import { UserProfile } from '../../auth/services/types';
 
 const OrderDetailsScreen = ({ navigation, route }: any) => {
+    const { order, orderId, status: initialStatus } = route.params || {};
+    const [currentOrder, setCurrentOrder] = useState(order || { id: orderId });
     const [cancelModalVisible, setCancelModalVisible] = useState(false);
     const [otpModalVisible, setOtpModalVisible] = useState(false);
     const [reviews, setReviews] = useState<Review[]>([]);
     const [loadingReviews, setLoadingReviews] = useState(true);
     const [sellerInfo, setSellerInfo] = useState<{ name: string, photo: any, rating: string } | null>(null);
     const [loadingSeller, setLoadingSeller] = useState(true);
-    const { userRole } = useAuth();
+
+    // Rider assignment states
+    const [assignModalVisible, setAssignModalVisible] = useState(false);
+    const [riders, setRiders] = useState<UserProfile[]>([]);
+    const [loadingRiders, setLoadingRiders] = useState(false);
+    const [assignedRider, setAssignedRider] = useState<UserProfile | null>(null);
+    const [loadingAssignedRider, setLoadingAssignedRider] = useState(false);
+
+    const { user, userRole } = useAuth();
     const isSeller = userRole === 'seller';
-    const { order, status } = route.params || {};
-    
+    const currentStatus = currentOrder?.status || initialStatus;
+
     const { colors } = useTheme();
     const styles = useStyles(createStyles);
     const { t } = useTranslation();
 
+    // Subscribe to order changes in real-time
+    useEffect(() => {
+        const oId = order?.id || orderId;
+        if (!oId) return;
+        const unsubscribe = firestore()
+            .collection('orders')
+            .doc(oId)
+            .onSnapshot((doc) => {
+                if (doc.exists()) {
+                    const data = doc.data();
+                    if (data) {
+                        setCurrentOrder((prev: any) => ({
+                            ...prev,
+                            id: doc.id,
+                            status: data.status || prev.status,
+                            riderId: data.riderId || prev.riderId,
+                            payout: data.payout || prev.payout,
+                            products: data.products || prev.products,
+                            totalPrice: data.totalPrice || prev.totalPrice,
+                            sellerName: data.sellerName || prev.sellerName,
+                            sellerImage: data.sellerImage || prev.sellerImage,
+                            sellerRating: data.sellerRating || prev.sellerRating,
+                            rawOrder: {
+                                ...prev.rawOrder,
+                                ...data,
+                            }
+                        }));
+                    }
+                }
+            }, (err) => {
+                console.error('Order subscription failed:', err);
+            });
+        return unsubscribe;
+    }, [order?.id, orderId]);
+
+    const fetchOnlineRiders = useCallback(async () => {
+        if (!user?.uid || !isSeller) return;
+        setLoadingRiders(true);
+        try {
+            const data = await storeRiderRepository.getLinkedRiders(user.uid);
+            const onlineRiders = data.filter(r => r.isOnline !== false);
+            setRiders(onlineRiders);
+        } catch (err) {
+            console.error('Failed to fetch online riders:', err);
+        } finally {
+            setLoadingRiders(false);
+        }
+    }, [user?.uid, isSeller]);
+
+    const fetchAssignedRider = useCallback(async () => {
+        const rId = currentOrder?.riderId || currentOrder?.rawOrder?.riderId;
+        if (!rId) {
+            setAssignedRider(null);
+            return;
+        }
+        setLoadingAssignedRider(true);
+        try {
+            const doc = await firestore().collection('users').doc(rId).get();
+            const data = doc.data();
+            if (data) {
+                setAssignedRider({
+                    uid: doc.id,
+                    email: data.email || null,
+                    displayName: data.displayName || null,
+                    photoURL: data.photoURL || null,
+                    role: data.role || null,
+                    cnpj: data.cnpj,
+                    address: data.address,
+                    location: data.location,
+                    areaInKm: data.areaInKm,
+                    storeId: data.storeId || null,
+                    isOnline: data.isOnline !== false,
+                    createdAt: data.createdAt || '',
+                    updatedAt: data.updatedAt || '',
+                });
+            }
+        } catch (err) {
+            console.error('Failed to fetch assigned rider:', err);
+        } finally {
+            setLoadingAssignedRider(false);
+        }
+    }, [currentOrder?.riderId, currentOrder?.rawOrder?.riderId]);
+
+    useEffect(() => {
+        fetchAssignedRider();
+    }, [currentOrder?.riderId, currentOrder?.rawOrder?.riderId, fetchAssignedRider]);
+
     const fetchSellerData = useCallback(async () => {
-        const sellerId = order?.rawOrder?.sellerId;
+        const sellerId = currentOrder?.rawOrder?.sellerId;
         if (!sellerId || isSeller) {
             setLoadingSeller(false);
             return;
@@ -53,9 +154,9 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
             const sellerData = sellerDoc.data();
             if (sellerData) {
                 setSellerInfo({
-                    name: sellerData.displayName || order.sellerName || t('gas_store'),
-                    photo: resolveProductImage(sellerData.photoURL || order.sellerImage),
-                    rating: sellerData.rating || order.sellerRating || '4.9'
+                    name: sellerData.displayName || currentOrder.sellerName || t('gas_store'),
+                    photo: resolveProductImage(sellerData.photoURL || currentOrder.sellerImage),
+                    rating: sellerData.rating || currentOrder.sellerRating || '4.9'
                 });
             }
         } catch (err) {
@@ -63,15 +164,15 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
         } finally {
             setLoadingSeller(false);
         }
-    }, [order?.rawOrder?.sellerId, isSeller, order?.sellerName, order?.sellerImage, order?.sellerRating, t]);
+    }, [currentOrder?.rawOrder?.sellerId, isSeller, currentOrder?.sellerName, currentOrder?.sellerImage, currentOrder?.sellerRating, t]);
 
     const fetchReviews = useCallback(async () => {
-        const productId = order?.rawOrder?.items?.[0]?.productId;
+        const productId = currentOrder?.rawOrder?.items?.[0]?.productId;
         if (!productId) {
             setLoadingReviews(false);
             return;
         }
-        
+
         setLoadingReviews(true);
         try {
             const data = await reviewRepository.getReviewsByProduct(productId);
@@ -81,42 +182,82 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
         } finally {
             setLoadingReviews(false);
         }
-    }, [order?.rawOrder?.items]);
+    }, [currentOrder?.rawOrder?.items]);
 
     useFocusEffect(
         useCallback(() => {
             fetchReviews();
             fetchSellerData();
-        }, [fetchReviews, fetchSellerData])
+            fetchOnlineRiders();
+        }, [fetchReviews, fetchSellerData, fetchOnlineRiders])
     );
 
     const navigateToReview = () => {
         navigation.navigate(Routes.REVIEW, {
-            orderId: order.id,
-            sellerId: order.rawOrder?.sellerId,
-            productId: order.rawOrder?.items[0]?.productId
+            orderId: currentOrder.id,
+            sellerId: currentOrder.rawOrder?.sellerId,
+            productId: currentOrder.rawOrder?.items[0]?.productId
         })
     }
+
+    const handleAssignRider = async (selectedRider: UserProfile) => {
+        if (!currentOrder.id) return;
+        try {
+            setAssignModalVisible(false);
+            await deliveryRepository.acceptJob(currentOrder.id, selectedRider.uid);
+            Alert.alert(t('Success'), t('rider_invitation_sent_success'));
+        } catch (err) {
+            console.error('Failed to assign rider:', err);
+            Alert.alert(t('Error'), t('failed_to_fetch_data'));
+        }
+    };
 
     const renderSellerView = () => (
         <>
             <View style={styles.productContainer}>
                 <ProductCard
-                    title={order.title}
-                    subtitle={order.subtitle}
-                    price={order.price || "20"}
-                    image={order.image}
+                    title={currentOrder.title}
+                    subtitle={currentOrder.subtitle}
+                    price={currentOrder.price || "20"}
+                    image={currentOrder.image}
                 />
             </View>
  
             <View style={styles.customerContainer}>
                 <AppText style={styles.title}>{t('customer_details')}</AppText>
                 <CustomerCard
-                    name={order.rawOrder?.userName || "Henrey"}
-                    email={order.rawOrder?.userEmail || "xvy@gmail.com"}
-                    address={order.rawOrder?.userAddress || "Street 1 Block V Johar"}
-                    image={order.rawOrder?.userPhoto ? { uri: order.rawOrder.userPhoto } : IMAGES.MAN2}
+                    name={currentOrder.rawOrder?.userName || "Henrey"}
+                    email={currentOrder.rawOrder?.userEmail || "xvy@gmail.com"}
+                    address={currentOrder.rawOrder?.userAddress || "Street 1 Block V Johar"}
+                    image={currentOrder.rawOrder?.userPhoto ? { uri: currentOrder.rawOrder.userPhoto } : IMAGES.MAN2}
                 />
+            </View>
+
+            <View style={styles.riderContainer}>
+                <AppText style={styles.title}>{t('delivery_partner')}</AppText>
+                {loadingAssignedRider ? (
+                    <ActivityIndicator size="small" color={colors.primary} />
+                ) : assignedRider ? (
+                    <CustomerCard
+                        name={assignedRider.displayName || assignedRider.email || ''}
+                        email={assignedRider.email || ''}
+                        address={assignedRider.isOnline ? t('online') : t('offline')}
+                        image={assignedRider.photoURL ? { uri: assignedRider.photoURL } : IMAGES.MAN2}
+                    />
+                ) : (
+                    <View style={styles.noRiderCard}>
+                        <AppText style={styles.noRiderText}>{t('no_rider_assigned')}</AppText>
+                        {currentOrder.status === 'order_placed' && (
+                            <TouchableOpacity
+                                style={styles.assignRiderButton}
+                                activeOpacity={0.8}
+                                onPress={() => setAssignModalVisible(true)}
+                            >
+                                <AppText style={styles.assignRiderButtonText}>{t('assign_rider')}</AppText>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                )}
             </View>
         </>
     );
@@ -126,20 +267,20 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
             <View style={styles.productContainer}>
                 <AppText style={styles.title}>{t('Product')}</AppText>
                 <ProductCard
-                    title={order.title}
-                    subtitle={order.subtitle}
-                    price={order.price || "20"}
-                    image={order.image}
+                    title={currentOrder.title}
+                    subtitle={currentOrder.subtitle}
+                    price={currentOrder.price || "20"}
+                    image={currentOrder.image}
                 />
             </View>
  
             <View style={styles.storeContainer}>
                 <AppText style={styles.title}>{t('Store_Details')}</AppText>
                 <StoreCard
-                    title={sellerInfo?.name || order.sellerName || t('gas_store')}
-                    time={order.rawOrder?.estimatedDeliveryMin || '20'}
-                    rating={sellerInfo?.rating || order.sellerRating || '4.9'}
-                    image={sellerInfo?.photo || order.sellerImage || IMAGES.NOTIFICATION_CYLINDER}
+                    title={sellerInfo?.name || currentOrder.sellerName || t('gas_store')}
+                    time={currentOrder.rawOrder?.estimatedDeliveryMin || '20'}
+                    rating={sellerInfo?.rating || currentOrder.sellerRating || '4.9'}
+                    image={sellerInfo?.photo || currentOrder.sellerImage || IMAGES.NOTIFICATION_CYLINDER}
                 />
             </View>
             <View style={styles.reviewsContainer}>
@@ -172,14 +313,26 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
                     </AppText>
                 )}
             </View>
+
+            {assignedRider && (
+                <View style={styles.riderContainer}>
+                    <AppText style={styles.title}>{t('delivery_partner')}</AppText>
+                    <CustomerCard
+                        name={assignedRider.displayName || assignedRider.email || ''}
+                        email={assignedRider.email || ''}
+                        address={assignedRider.isOnline ? t('online') : t('offline')}
+                        image={assignedRider.photoURL ? { uri: assignedRider.photoURL } : IMAGES.MAN2}
+                    />
+                </View>
+            )}
         </>
     );
  
     const handleConfirmCancel = async () => {
         setCancelModalVisible(false);
-        if (order.id) {
+        if (currentOrder.id) {
             try {
-                await orderRepository.updateOrderStatus(order.id, 'cancelled');
+                await orderRepository.updateOrderStatus(currentOrder.id, 'cancelled');
                 Alert.alert(t('Success'), t('order_cancelled_success'));
                 navigation.goBack();
             } catch (err) {
@@ -191,9 +344,9 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
  
     const handleConfirmDelivered = async () => {
         setOtpModalVisible(false);
-        if (order.id) {
+        if (currentOrder.id) {
             try {
-                await orderRepository.updateOrderStatus(order.id, 'delivered');
+                await orderRepository.updateOrderStatus(currentOrder.id, 'delivered');
                 Alert.alert(t('Success'), t('order_delivered_success_alert'));
                 navigation.goBack();
             } catch (err) {
@@ -203,10 +356,10 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
         }
     };
  
-    const canCancel = (isSeller && status === 'pending') || (!isSeller && order.status === 'order_placed');
+    const canCancel = (isSeller && currentStatus === 'pending') || (!isSeller && currentOrder.status === 'order_placed');
  
     const getStatusColor = () => {
-        const s = isSeller ? (status === 'pending' ? order.status : status) : order.status;
+        const s = isSeller ? (currentStatus === 'pending' ? currentOrder.status : currentStatus) : currentOrder.status;
         switch (s) {
             case 'delivered': return colors.primary;
             case 'cancelled': return colors.error;
@@ -215,8 +368,10 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
             default: return colors.textSecondary;
         }
     };
+ 
+    const isOrderLoading = !currentOrder || (!currentOrder.products && (!currentOrder.rawOrder || !currentOrder.rawOrder.products));
 
-    if (loadingSeller) {
+    if (loadingSeller || isOrderLoading) {
         return (
             <View style={styles.container}>
                 <ScreenHeader title={t('order_details')} showBackButton={true} />
@@ -226,7 +381,7 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
             </View>
         );
     }
-
+ 
     return (
         <View style={styles.container}>
             <ScreenHeader
@@ -237,7 +392,7 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
                 <View style={styles.statusBadgeContainer}>
                     <View style={[styles.statusBadge, { backgroundColor: getStatusColor() + '20' }]}>
                         <AppText style={[styles.statusText, { color: getStatusColor() }]}>
-                            {t(isSeller ? (status === 'pending' ? order.status : status) : order.status)}
+                            {t(isSeller ? (currentStatus === 'pending' ? currentOrder.status : currentStatus) : currentOrder.status)}
                         </AppText>
                     </View>
                 </View>
@@ -273,7 +428,14 @@ const OrderDetailsScreen = ({ navigation, route }: any) => {
                 visible={otpModalVisible}
                 onClose={() => setOtpModalVisible(false)}
                 onConfirm={handleConfirmDelivered}
-                amount={order.price || "20"}
+                amount={currentOrder.price || "20"}
+            />
+            <AssignRiderModal
+                visible={assignModalVisible}
+                onClose={() => setAssignModalVisible(false)}
+                onSelectRider={handleAssignRider}
+                riders={riders}
+                loading={loadingRiders}
             />
         </View>
     )
@@ -372,5 +534,35 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    riderContainer: {
+        paddingHorizontal: wp(6),
+        marginTop: hp(2),
+    },
+    noRiderCard: {
+        backgroundColor: colors.white,
+        paddingHorizontal: wp(5),
+        paddingVertical: hp(2.5),
+        borderRadius: 20,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: colors.lightGray + '50',
+    },
+    noRiderText: {
+        fontSize: 14,
+        fontFamily: FONT.regular,
+        color: colors.textSecondary,
+        marginBottom: hp(1.5),
+    },
+    assignRiderButton: {
+        backgroundColor: colors.primary,
+        paddingHorizontal: wp(6),
+        paddingVertical: hp(1.2),
+        borderRadius: 20,
+    },
+    assignRiderButtonText: {
+        color: colors.white,
+        fontFamily: FONT.medium,
+        fontSize: 14,
     },
 })

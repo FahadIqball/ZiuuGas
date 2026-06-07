@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, StatusBar } from 'react-native';
+import { View, StyleSheet, ScrollView, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../hooks/useTheme';
 import { useStyles } from '../../../hooks/useStyles';
@@ -9,18 +9,36 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { ScreenHeader } from '../../../common/components/ScreenHeader';
 import { Input } from '../../../common/components/Input';
 import { Button } from '../../../common/components/Button';
+import { useAuth } from '../../../context/AuthContext';
+import { storeRiderRepository } from '../../../services/storeRiderService';
 
 const AddDeliveryPersonScreen = ({ navigation }: any) => {
     const { colors, isDarkMode } = useTheme();
     const styles = useStyles(createStyles);
     const { t } = useTranslation();
+    const { user } = useAuth();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const handleRegister = () => {
-        // Simple functional navigation back after registration
-        if (name && email) {
+    const handleRegister = async () => {
+        if (!email.trim()) {
+            Alert.alert(t('Error'), t('fill_all_fields'));
+            return;
+        }
+        if (!user) return;
+
+        setLoading(true);
+        try {
+            const storeName = user.displayName || t('gas_store');
+            await storeRiderRepository.sendInvitation(user.uid, storeName, email);
+            Alert.alert(t('Success'), t('rider_invitation_sent_success'));
             navigation.goBack();
+        } catch (err: any) {
+            console.error('Failed to send rider invitation:', err);
+            Alert.alert(t('Error'), err.message || t('failed_to_send_request'));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -55,11 +73,15 @@ const AddDeliveryPersonScreen = ({ navigation }: any) => {
                     />
                 </ScrollView>
                 <View style={styles.footer}>
-                    <Button
-                        title={t('register')}
-                        onPress={handleRegister}
-                        style={styles.registerBtn}
-                    />
+                    {loading ? (
+                        <ActivityIndicator size="large" color={colors.primary} />
+                    ) : (
+                        <Button
+                            title={t('register')}
+                            onPress={handleRegister}
+                            style={styles.registerBtn}
+                        />
+                    )}
                 </View>
             </SafeAreaView>
         </View>

@@ -13,34 +13,45 @@ export const GasNotification: React.FC = () => {
   const { colors } = useTheme();
   const styles = useStyles(createStyles);
   const { t } = useTranslation();
-  const { hideGasNotification, acceptOffer } = useNotification();
+  const { gasNotificationData, acceptOffer, rejectOffer } = useNotification();
+
+  const imageSource = gasNotificationData?.sellerPhotoURL
+    ? { uri: gasNotificationData.sellerPhotoURL }
+    : require('../../../assets/images/notificationcylinder.png');
 
   return (
     <View style={styles.outerContainer}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Image
-            source={require('../../../assets/images/notificationcylinder.png')}
+            source={imageSource}
             style={styles.storeImage}
           />
           <View style={styles.storeDetails}>
             <View style={styles.titleRow}>
               <AppText color={colors.secondary} style={styles.storeName}>
-                {t('gas_cylinder_store')}
+                {gasNotificationData?.sellerName || t('gas_cylinder_store')}
               </AppText>
               <AppText style={styles.priceText}>
-                {t('price_label')} <AppText style={styles.priceValue}>20{t('currency')}</AppText>
+                {t('price_label') || 'Price:'}{' '}
+                <AppText style={styles.priceValue}>
+                  {gasNotificationData?.price || '20'}{t('currency') || '$'}
+                </AppText>
               </AppText>
             </View>
 
             <View style={styles.infoRow}>
               <View style={styles.infoItem}>
                 <View style={styles.iconPlaceholder} />
-                <AppText style={styles.infoText}>20 {t('mins')}</AppText>
+                <AppText style={styles.infoText}>
+                  {gasNotificationData?.estimatedTime || '20'} {t('mins')}
+                </AppText>
               </View>
               <View style={styles.infoItem}>
                 <AppText style={[styles.infoText, { color: colors.orange }]}>★ </AppText>
-                <AppText style={styles.infoText}>4.5 {t('ratings')}</AppText>
+                <AppText style={styles.infoText}>
+                  {gasNotificationData?.rating || '4.5'} {t('ratings')}
+                </AppText>
               </View>
             </View>
 
@@ -56,7 +67,7 @@ export const GasNotification: React.FC = () => {
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={[styles.button, styles.rejectButton]}
-            onPress={hideGasNotification}
+            onPress={rejectOffer}
             activeOpacity={0.8}
           >
             <AppText style={styles.rejectButtonText}>{t('reject')}</AppText>

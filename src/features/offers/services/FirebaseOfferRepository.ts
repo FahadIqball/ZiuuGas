@@ -1,6 +1,7 @@
 import firestore from '@react-native-firebase/firestore';
 import { OfferRepository } from './OfferRepository';
 import { Offer, OfferRequest } from './types';
+import { notificationRepository } from '../../../services/notificationService';
 
 export class FirebaseOfferRepository implements OfferRepository {
   private requestsCollection = firestore().collection('offerRequests');
@@ -23,6 +24,40 @@ export class FirebaseOfferRepository implements OfferRepository {
       createdAt: timestamp,
     };
     await docRef.set(newRequest);
+
+    // Notify all sellers about the new request
+    try {
+      const sellersSnapshot = await firestore()
+        .collection('users')
+        .where('role', '==', 'seller')
+        .get();
+
+      const customerName = userData?.displayName || request.userName || 'Customer';
+      const notifMsg = 'notif_msg_3'; // "Sent you an offer" or customized: "New offer request created"
+
+      for (const sellerDoc of sellersSnapshot.docs) {
+        const sellerId = sellerDoc.id;
+
+        await notificationRepository.createNotification({
+          recipientId: sellerId,
+          title: customerName,
+          message: notifMsg,
+          type: 'new_offer',
+          image: userData?.photoURL || null,
+          offerId: docRef.id,
+        });
+
+        await notificationRepository.sendPushNotification(
+          sellerId,
+          customerName,
+          'Sent a new offer request',
+          { type: 'new_offer', offerId: docRef.id }
+        );
+      }
+    } catch (err) {
+      console.error('Failed to notify sellers of new offer request:', err);
+    }
+
     return { ...newRequest, createdAt: new Date() } as any;
   }
 
@@ -88,6 +123,30 @@ export class FirebaseOfferRepository implements OfferRepository {
         status: 'responded'
     });
 
+    // Notify the customer about the new offer
+    try {
+      const sellerStoreName = sellerData?.displayName || offer.sellerName || 'Store';
+      const notifMsg = 'notif_msg_2'; // "Just sent you an offer"
+
+      await notificationRepository.createNotification({
+        recipientId: offer.userId,
+        title: sellerStoreName,
+        message: notifMsg,
+        type: 'new_offer',
+        offerId: docRef.id,
+        image: sellerData?.photoURL || null,
+      });
+
+      await notificationRepository.sendPushNotification(
+        offer.userId,
+        sellerStoreName,
+        'Just sent you an offer',
+        { offerId: docRef.id, type: 'new_offer' }
+      );
+    } catch (notifErr) {
+      console.error('Failed to notify customer of sent offer:', notifErr);
+    }
+
     return { ...newOffer, createdAt: new Date() } as any;
   }
 
@@ -134,9 +193,59 @@ export class FirebaseOfferRepository implements OfferRepository {
   }
 
   async updateOfferStatus(offerId: string, status: Offer['status']): Promise<void> {
-    await this.offersCollection.doc(offerId).update({
-      status,
-    });
+    try {
+      const offerDoc = await this.offersCollection.doc(offerId).get();
+      if (!offerDoc.exists) return;
+      const offerData = offerDoc.data();
+      if (!offerData) return;
+
+      await this.offersCollection.doc(offerId).update({
+        status,
+      });
+
+      // Notify the seller when their offer status changes
+      const customerName = offerData.userName || 'Customer';
+      if (status === 'accepted') {
+        const notifMsg = 'notif_msg_4'; // "Accepted your offer request"
+
+        await notificationRepository.createNotification({
+          recipientId: offerData.sellerId,
+          title: customerName,
+          message: notifMsg,
+          type: 'offer_accepted',
+          offerId: offerId,
+          image: offerData.userPhotoURL || null,
+        });
+
+        await notificationRepository.sendPushNotification(
+          offerData.sellerId,
+          customerName,
+          'Accepted your offer request',
+          { offerId, type: 'offer_accepted' }
+        );
+      } else if (status === 'rejected') {
+        const notifMsg = 'Offer rejected';
+
+        await notificationRepository.createNotification({
+          recipientId: offerData.sellerId,
+          title: customerName,
+          message: notifMsg,
+          type: 'cancelled',
+          offerId: offerId,
+          image: offerData.userPhotoURL || null,
+        });
+
+        await notificationRepository.sendPushNotification(
+          offerData.sellerId,
+          customerName,
+          'Rejected your offer',
+          { offerId, type: 'cancelled' }
+        );
+      }
+    } catch (err) {
+      console.error('FirebaseOfferRepository.updateOfferStatus failed:', err);
+      throw err;
+    }
   }
 
   private sortDescending(a: any, b: any) {
@@ -161,5 +270,44 @@ export class FirebaseOfferRepository implements OfferRepository {
       id: doc.id,
       createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt,
     } as Offer;
+  }
+
+  subscribeToOffersByUser(userId: string, onUpdate: (offers: Offer[]) => void): () => void {
+    return this.offersCollection
+      .where('userId', '==', userId)
+      .onSnapshot((snapshot) => {
+        if (!snapshot) return;
+        const offers = snapshot.docs.map(doc => this.mapDocToOffer(doc));
+        offers.sort((a, b) => this.sortDescending(a.createdAt, b.createdAt));
+        onUpdate(offers);
+      }, (err) => {
+        console.error('subscribeToOffersByUser error:', err);
+      });
+  }
+
+  subscribeToOffersBySeller(sellerId: string, onUpdate: (offers: Offer[]) => void): () => void {
+    return this.offersCollection
+      .where('sellerId', '==', sellerId)
+      .onSnapshot((snapshot) => {
+        if (!snapshot) return;
+        const offers = snapshot.docs.map(doc => this.mapDocToOffer(doc));
+        offers.sort((a, b) => this.sortDescending(a.createdAt, b.createdAt));
+        onUpdate(offers);
+      }, (err) => {
+        console.error('subscribeToOffersBySeller error:', err);
+      });
+  }
+
+  subscribeToOfferRequestsBySeller(onUpdate: (requests: OfferRequest[]) => void): () => void {
+    return this.requestsCollection
+      .where('status', '==', 'pending')
+      .onSnapshot((snapshot) => {
+        if (!snapshot) return;
+        const requests = snapshot.docs.map(doc => this.mapDocToRequest(doc));
+        requests.sort((a, b) => this.sortDescending(a.createdAt, b.createdAt));
+        onUpdate(requests);
+      }, (err) => {
+        console.error('subscribeToOfferRequestsBySeller error:', err);
+      });
   }
 }

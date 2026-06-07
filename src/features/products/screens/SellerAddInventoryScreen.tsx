@@ -16,13 +16,14 @@ import { launchImageLibrary } from 'react-native-image-picker'
 import { CategoryModal } from '../components/selectCategoryModal'
 import { useAuth } from '../../../context/AuthContext'
 import { productRepository } from '../../../services/productService'
+import { imageStorageRepository } from '../../../services/imageStorageService'
 
 const SellerAddInventoryScreen = ({ navigation, route }: any) => {
     const { colors } = useTheme();
     const styles = useStyles(createStyles);
     const { t } = useTranslation();
     const { user } = useAuth();
-    
+
     const { product } = route.params || {};
     const isEditing = !!product;
 
@@ -60,6 +61,13 @@ const SellerAddInventoryScreen = ({ navigation, route }: any) => {
         setLoading(true);
         setError(null);
         try {
+            let uploadedImageUrl = product?.image || 'CYLINDER_1';
+            if (imageUri && !imageUri.startsWith('http')) {
+                uploadedImageUrl = await imageStorageRepository.uploadFile(imageUri, 'products');
+            } else if (imageUri) {
+                uploadedImageUrl = imageUri;
+            }
+
             const productData = {
                 categoryId: selectedCategory.id,
                 title: name,
@@ -68,7 +76,7 @@ const SellerAddInventoryScreen = ({ navigation, route }: any) => {
                 stock: parseInt(stock, 10),
                 weight: weight || '',
                 description: description || '',
-                image: imageUri || product?.image || 'CYLINDER_1',
+                image: uploadedImageUrl,
             };
 
             if (isEditing) {

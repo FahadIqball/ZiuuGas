@@ -11,4 +11,8 @@ export interface OfferRepository {
   getOffersBySeller(sellerId: string): Promise<Offer[]>;
   getOffersByRequest(requestId: string): Promise<Offer[]>;
   updateOfferStatus(offerId: string, status: Offer['status']): Promise<void>;
+
+  subscribeToOffersByUser(userId: string, onUpdate: (offers: Offer[]) => void): () => void;
+  subscribeToOffersBySeller(sellerId: string, onUpdate: (offers: Offer[]) => void): () => void;
+  subscribeToOfferRequestsBySeller(onUpdate: (requests: OfferRequest[]) => void): () => void;
 }

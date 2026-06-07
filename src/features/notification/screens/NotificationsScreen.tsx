@@ -22,12 +22,26 @@ const NotificationsScreen: React.FC = () => {
     const styles = useStyles(createStyles);
     const navigation = useNavigation<any>();
     const { notifications } = useNotifications();
-    const { showGasNotification } = useNotification();
+    const { showGasNotification, markAsRead } = useNotification();
     const { t } = useTranslation();
 
-    const handleNotificationPress = (id: string) => {
-        showGasNotification(id);
-        navigation.navigate(Routes.MAIN_TABS, { screen: Routes.HOME });
+    const handleNotificationPress = (item: any) => {
+        if (item.id) {
+            markAsRead(item.id);
+        }
+
+        if (item.orderId) {
+            if (item.type === 'delivered') {
+                navigation.navigate(Routes.ORDER_DETAILS, { orderId: item.orderId });
+            } else {
+                navigation.navigate(Routes.TRACK_ORDER, { orderId: item.orderId });
+            }
+        } else if (item.type === 'new_offer' || item.type === 'association_request') {
+            showGasNotification(item.id);
+            navigation.navigate(Routes.MAIN_TABS, { screen: Routes.HOME });
+        } else {
+            navigation.navigate(Routes.MAIN_TABS, { screen: Routes.HOME });
+        }
     };
 
     return (
@@ -39,11 +53,11 @@ const NotificationsScreen: React.FC = () => {
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
                         <TouchableOpacity 
-                            onPress={() => handleNotificationPress(item.id)}
+                            onPress={() => handleNotificationPress(item)}
                             activeOpacity={0.8}
                         >
                             <NotificationItem
-                                store={t(item.store as TxKeyPath)}
+                                store={t(item.title as TxKeyPath)}
                                 message={t(item.message as TxKeyPath)}
                                 time={t(item.time as TxKeyPath)}
                                 image={item.image}

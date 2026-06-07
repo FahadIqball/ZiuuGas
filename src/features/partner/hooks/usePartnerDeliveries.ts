@@ -15,7 +15,7 @@ export const usePartnerDeliveries = () => {
     setIsLoading(true);
     try {
       // 1. Get available jobs (placed but unassigned orders)
-      const jobs = await deliveryRepository.getAvailableJobs(10, 'depot');
+      const jobs = await deliveryRepository.getAvailableJobs(10, 'depot', user.storeId);
       setAvailableJobs(jobs);
 
       // 2. Look for active job assigned to this partner (placed or dispatched status)

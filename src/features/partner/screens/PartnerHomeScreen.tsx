@@ -9,18 +9,41 @@ import { ScreenHeader } from '../../../common/components/ScreenHeader';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { usePartnerDeliveries } from '../hooks/usePartnerDeliveries';
 import { usePartnerLocation } from '../hooks/usePartnerLocation';
+import { usePartnerInvitations } from '../hooks/usePartnerInvitations';
+import { useAuth } from '../../../context/AuthContext';
 import { Card } from '../../../common/components/Card/Card';
 import { hp, wp } from '../../../enums/spacing';
 import { FONT } from '../../../enums/typography';
 import { Button } from '../../../common/components/Button';
 import { Routes } from '../../../constants/routes';
+import { useEffect } from 'react';
 
 const PartnerHomeScreen: React.FC = ({ navigation }: any) => {
   const { colors } = useTheme();
   const styles = useStyles(createStyles);
   const { t } = useTranslation();
   const { availableJobs, activeJob, isLoading, refreshJobs, acceptJob } = usePartnerDeliveries();
-  const [isOnline, setIsOnline] = useState(true);
+  const { invitations, respondToInvitation } = usePartnerInvitations();
+  const { user, updateProfile } = useAuth();
+  
+  const [isOnline, setIsOnline] = useState(user?.isOnline ?? true);
+
+  useEffect(() => {
+    if (user) {
+      setIsOnline(user.isOnline ?? true);
+    }
+  }, [user?.isOnline]);
+
+  const handleToggleOnline = async () => {
+    const newStatus = !isOnline;
+    setIsOnline(newStatus);
+    try {
+      await updateProfile({ isOnline: newStatus });
+    } catch (err) {
+      console.error('Failed to update online status:', err);
+      setIsOnline(isOnline);
+    }
+  };
 
   // Broadcast location periodically if online
   usePartnerLocation(isOnline);
@@ -32,6 +55,23 @@ const PartnerHomeScreen: React.FC = ({ navigation }: any) => {
       navigation.navigate(Routes.ACTIVE_DELIVERIES);
     } catch (err) {
       Alert.alert(t('Error'), t('failed_to_send_offer'));
+    }
+  };
+
+  const handleAcceptInvitation = async (id: string) => {
+    try {
+      await respondToInvitation(id, true);
+      Alert.alert(t('Success'), t('rider_invitation_sent_success'));
+    } catch (err) {
+      Alert.alert(t('Error'), t('failed_to_fetch_data'));
+    }
+  };
+
+  const handleDeclineInvitation = async (id: string) => {
+    try {
+      await respondToInvitation(id, false);
+    } catch (err) {
+      Alert.alert(t('Error'), t('failed_to_fetch_data'));
     }
   };
 
@@ -76,11 +116,37 @@ const PartnerHomeScreen: React.FC = ({ navigation }: any) => {
           <TouchableOpacity 
             style={[styles.toggleButton, isOnline ? styles.toggleOn : styles.toggleOff]}
             activeOpacity={0.8}
-            onPress={() => setIsOnline(!isOnline)}
+            onPress={handleToggleOnline}
           >
             <View style={[styles.toggleKnob, isOnline ? styles.knobOn : styles.knobOff]} />
           </TouchableOpacity>
         </Card>
+
+        {/* Pending Invitations */}
+        {invitations.map((invite) => (
+          <Card key={invite.id} style={styles.inviteCard}>
+            <AppText style={styles.inviteTitle}>{t('store_link_request')}</AppText>
+            <AppText style={styles.inviteSubtitle}>
+              {invite.storeName} {t('wants_to_link_rider')}
+            </AppText>
+            <View style={styles.inviteActionRow}>
+              <TouchableOpacity 
+                style={styles.inviteDeclineBtn} 
+                onPress={() => handleDeclineInvitation(invite.id)}
+                activeOpacity={0.8}
+              >
+                <AppText style={styles.inviteDeclineText}>{t('reject')}</AppText>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.inviteAcceptBtn} 
+                onPress={() => handleAcceptInvitation(invite.id)}
+                activeOpacity={0.8}
+              >
+                <AppText style={styles.inviteAcceptText}>{t('accept')}</AppText>
+              </TouchableOpacity>
+            </View>
+          </Card>
+        ))}
 
         {activeJob && (
           <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate(Routes.ACTIVE_DELIVERIES)}>
@@ -299,6 +365,55 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     fontFamily: FONT.regular,
     fontSize: 14,
+  },
+  inviteCard: {
+    backgroundColor: colors.primary + '10',
+    borderColor: colors.primary,
+    borderWidth: 1,
+    marginHorizontal: wp(6),
+    marginBottom: hp(2),
+    paddingVertical: hp(2),
+    paddingHorizontal: wp(5),
+    borderRadius: 16,
+  },
+  inviteTitle: {
+    fontSize: 14,
+    fontFamily: FONT.semiBold,
+    color: colors.primary,
+  },
+  inviteSubtitle: {
+    fontSize: 13,
+    fontFamily: FONT.regular,
+    color: colors.secondary,
+    marginTop: hp(0.5),
+  },
+  inviteActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: wp(3),
+    marginTop: hp(1.5),
+  },
+  inviteDeclineBtn: {
+    paddingVertical: hp(0.8),
+    paddingHorizontal: wp(4),
+    backgroundColor: colors.lightGray,
+    borderRadius: 12,
+  },
+  inviteDeclineText: {
+    color: colors.textSecondary,
+    fontFamily: FONT.medium,
+    fontSize: 12,
+  },
+  inviteAcceptBtn: {
+    paddingVertical: hp(0.8),
+    paddingHorizontal: wp(4),
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+  },
+  inviteAcceptText: {
+    color: colors.white,
+    fontFamily: FONT.medium,
+    fontSize: 12,
   },
 });
 

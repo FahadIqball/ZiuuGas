@@ -15,12 +15,14 @@ import { OfferRequestCard } from '../components/OfferRequestCard';
 import { AppText } from '../../../common/components/Typography/Typography';
 import { resolveProductImage } from '../../products/utils/imageResolver';
 import { offerRepository } from '../../../services/offerService';
+import { orderRepository } from '../../../services/orderService';
+import { addressRepository } from '../../../services/addressService';
 import { FONT } from '../../../enums/typography';
 
 const OffersScreen: React.FC = ({ navigation }: any) => {
     const { colors } = useTheme();
     const styles = useStyles(createStyles);
-    const { userRole } = useAuth();
+    const { user, userRole } = useAuth();
     const isSeller = userRole === 'seller';
     const { currentOffers, offerRequests, sentOffers, isLoading, refresh } = useOffers();
     const { t } = useTranslation();
@@ -32,9 +34,63 @@ const OffersScreen: React.FC = ({ navigation }: any) => {
 
     const handleAcceptOffer = async (offer: any) => {
         try {
+            let addressString = t('Default_Address');
+            try {
+                if (user) {
+                    const addresses = await addressRepository.getAddresses(user.uid);
+                    const defaultAddress = addresses.find(a => a.isDefault) || addresses[0];
+                    if (defaultAddress) {
+                        addressString = `${defaultAddress.street}, ${defaultAddress.city}, ${defaultAddress.state} ${defaultAddress.zipCode}, ${defaultAddress.country}`;
+                    }
+                }
+            } catch (addrErr) {
+                console.error('Failed to load address for offer conversion:', addrErr);
+            }
+
+            const newOrder = {
+                userId: offer.userId,
+                userName: offer.userName || 'Customer',
+                userEmail: user?.email || '',
+                userPhoto: offer.userPhotoURL || '',
+                userAddress: addressString,
+                sellerId: offer.sellerId,
+                sellerName: offer.sellerName || '',
+                sellerImage: offer.sellerPhotoURL || '',
+                sellerRating: offer.rating || '4.5',
+                items: [{
+                    productId: offer.requestId || 'unknown',
+                    title: offer.title || 'Gas Cylinder Refill',
+                    price: Number(offer.price) || 0,
+                    quantity: 1,
+                    image: offer.image || '',
+                }],
+                totalPrice: Number(offer.price) || 0,
+                status: 'order_placed' as const,
+                orderCode: Math.floor(10000 + Math.random() * 90000).toString(),
+                estimatedDeliveryMin: offer.estimatedTime || '20',
+            };
+
+            const orderId = await orderRepository.placeOrder(newOrder);
             await offerRepository.updateOfferStatus(offer.id, 'accepted');
-            Alert.alert(t('Success'), t('offer_accepted_success'));
-            refresh();
+            
+            Alert.alert(
+                t('Success'), 
+                t('offer_accepted_success'),
+                [
+                    {
+                        text: t('OK'),
+                        onPress: () => {
+                            navigation.reset({
+                                index: 1,
+                                routes: [
+                                    { name: Routes.MAIN_TABS },
+                                    { name: Routes.TRACK_ORDER, params: { orderId } }
+                                ],
+                            });
+                        }
+                    }
+                ]
+            );
         } catch (err) {
             console.error('Error accepting offer:', err);
             Alert.alert(t('Error'), t('failed_to_accept_offer'));

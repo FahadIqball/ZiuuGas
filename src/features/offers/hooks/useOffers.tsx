@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import { offerRepository } from '../../../services/offerService';
 import { Offer, OfferRequest } from '../services/types';
@@ -13,36 +13,46 @@ export const useOffers = () => {
 
     const isSeller = userRole === 'seller';
 
-    const fetchData = useCallback(async () => {
-        if (!user) return;
-        
+    useEffect(() => {
+        if (!user?.uid) {
+            setCurrentOffers([]);
+            setOfferRequests([]);
+            setSentOffers([]);
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
-        try {
-            if (isSeller) {
-                // Sellers see requests from users AND offers they have sent
-                const [requests, offers] = await Promise.all([
-                    offerRepository.getOfferRequestsBySeller(user.uid),
-                    offerRepository.getOffersBySeller(user.uid)
-                ]);
-                setOfferRequests(requests);
-                setSentOffers(offers);
-            } else {
-                // Users see offers sent by sellers
-                const offers = await offerRepository.getOffersByUser(user.uid);
-                setCurrentOffers(offers);
-            }
-        } catch (err) {
-            console.error('Error fetching offers data:', err);
-            setError('Failed to load data');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [user, isSeller]);
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        let unsubscribeOffers: (() => void) | undefined;
+        let unsubscribeRequests: (() => void) | undefined;
+
+        if (isSeller) {
+            // Subscribe to offers sent by this seller
+            unsubscribeOffers = offerRepository.subscribeToOffersBySeller(user.uid, (offers) => {
+                setSentOffers(offers);
+                setIsLoading(false);
+            });
+
+            // Subscribe to pending offer requests
+            unsubscribeRequests = offerRepository.subscribeToOfferRequestsBySeller((requests) => {
+                setOfferRequests(requests);
+                setIsLoading(false);
+            });
+        } else {
+            // Subscribe to offers received by this customer
+            unsubscribeOffers = offerRepository.subscribeToOffersByUser(user.uid, (offers) => {
+                setCurrentOffers(offers);
+                setIsLoading(false);
+            });
+        }
+
+        return () => {
+            if (unsubscribeOffers) unsubscribeOffers();
+            if (unsubscribeRequests) unsubscribeRequests();
+        };
+    }, [user?.uid, isSeller]);
 
     return {
         currentOffers,
@@ -50,6 +60,6 @@ export const useOffers = () => {
         sentOffers,
         isLoading,
         error,
-        refresh: fetchData,
+        refresh: () => {},
     };
 };

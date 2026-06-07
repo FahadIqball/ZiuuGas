@@ -62,14 +62,22 @@ const SellerNotificationsScreen = () => {
     const { colors } = useTheme();
     const styles = useStyles(createStyles);
     const navigation = useNavigation<any>();
-    const { showGasNotification } = useNotification();
+    const { notifications, showGasNotification, markAsRead } = useNotification();
     const { t } = useTranslation();
 
-    const notifications = React.useMemo(() => getSellerNotifications(t), [t]);
+    const handleNotificationPress = (item: any) => {
+        if (item.id) {
+            markAsRead(item.id);
+        }
 
-    const handleNotificationPress = (id: string) => {
-        showGasNotification(id);
-        navigation.navigate(Routes.MAIN_TABS, { screen: Routes.HOME });
+        if (item.orderId) {
+            navigation.navigate(Routes.ORDER_DETAILS, { orderId: item.orderId });
+        } else if (item.type === 'new_offer' || item.type === 'association_request') {
+            showGasNotification(item.id);
+            navigation.navigate(Routes.MAIN_TABS, { screen: Routes.HOME });
+        } else {
+            navigation.navigate(Routes.MAIN_TABS, { screen: Routes.HOME });
+        }
     };
 
     return (
@@ -81,14 +89,14 @@ const SellerNotificationsScreen = () => {
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
                         <TouchableOpacity
-                            onPress={() => handleNotificationPress(item.id)}
+                            onPress={() => handleNotificationPress(item)}
                             activeOpacity={0.8}
                         >
                             <NotificationItem
-                                title={item.title}
-                                message={item.message}
+                                title={t(item.title as TxKeyPath)}
+                                message={t(item.message as TxKeyPath)}
                                 orderNo={item.orderNo}
-                                time={item.time}
+                                time={t(item.time as TxKeyPath)}
                                 image={item.image}
                                 variant="seller"
                             />
@@ -96,7 +104,7 @@ const SellerNotificationsScreen = () => {
                     )}
                     renderSectionHeader={({ section: { title } }) => (
                         <AppText color={colors.secondary} style={styles.sectionTitle}>
-                            {title}
+                            {t(title as TxKeyPath)}
                         </AppText>
                     )}
                     showsVerticalScrollIndicator={false}

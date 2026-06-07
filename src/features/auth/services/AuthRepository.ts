@@ -21,4 +21,14 @@ export interface AuthRepository {
    * Returns an unsubscribe function.
    */
   onAuthStateChanged(callback: (user: UserProfile | null) => void): () => void;
+
+  /**
+   * Sign in with Email and Password
+   */
+  signInWithEmail(email: string, password: string): Promise<UserProfile>;
+
+  /**
+   * Sign up with Email and Password
+   */
+  signUpWithEmail(email: string, password: string): Promise<UserProfile>;
 }

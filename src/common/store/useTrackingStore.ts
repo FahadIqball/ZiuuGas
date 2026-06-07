@@ -7,6 +7,7 @@ interface TrackingState {
   isLoading: boolean;
   error: string | null;
   unsubscribe: (() => void) | null;
+  riderUnsubscribe: (() => void) | null;
   startTracking: (orderId: string | undefined, userId: string) => Promise<void>;
   stopTracking: () => void;
 }
@@ -16,6 +17,7 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
   isLoading: false,
   error: null,
   unsubscribe: null,
+  riderUnsubscribe: null,
 
   startTracking: async (orderId: string | undefined, userId: string) => {
     // Stop any existing tracking
@@ -46,6 +48,8 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
         return;
       }
 
+      let activeRiderId: string | null = null;
+
       const unsub = firestore()
         .collection('orders')
         .doc(targetId)
@@ -61,18 +65,74 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
                 currentStatus = OrderStatus.DELIVERED;
               }
 
-              set({
-                trackingData: {
-                  id: docSnapshot.id,
-                  currentStatus,
-                  orderCode: data?.orderCode || '',
-                  estimatedDelivery: data?.estimatedDeliveryMin || '20',
-                  price: data?.totalPrice ? data.totalPrice.toString() : '20',
-                  rating: data?.sellerRating || '4.5',
-                  storeName: data?.sellerName || '',
-                  storeImage: data?.sellerImage || '',
-                },
-                isLoading: false,
+              const newRiderId = data?.riderId || null;
+
+              // If riderId changed, setup a new listener
+              if (newRiderId !== activeRiderId) {
+                const prevRiderUnsub = get().riderUnsubscribe;
+                if (prevRiderUnsub) {
+                  prevRiderUnsub();
+                }
+                set({ riderUnsubscribe: null });
+                activeRiderId = newRiderId;
+
+                if (newRiderId) {
+                  const riderUnsub = firestore()
+                    .collection('users')
+                    .doc(newRiderId)
+                    .onSnapshot(
+                      riderSnapshot => {
+                        if (riderSnapshot.exists()) {
+                          const rData = riderSnapshot.data();
+                          set(state => {
+                            if (!state.trackingData) return {};
+                            return {
+                              trackingData: {
+                                ...state.trackingData,
+                                riderId: newRiderId,
+                                riderName: rData?.displayName || rData?.email || 'Rider',
+                                riderPhoto: rData?.photoURL || '',
+                                riderPhone: rData?.phone || '',
+                                riderLatitude: rData?.latitude,
+                                riderLongitude: rData?.longitude,
+                              }
+                            };
+                          });
+                        }
+                      },
+                      err => {
+                        console.error('Error listening to rider snapshot:', err);
+                      }
+                    );
+                  set({ riderUnsubscribe: riderUnsub });
+                }
+              }
+
+              // Set base tracking data (or merge existing rider data if already set)
+              set(state => {
+                const existingRiderData = (state.trackingData && state.trackingData.riderId === newRiderId) ? {
+                  riderId: state.trackingData.riderId,
+                  riderName: state.trackingData.riderName,
+                  riderPhoto: state.trackingData.riderPhoto,
+                  riderPhone: state.trackingData.riderPhone,
+                  riderLatitude: state.trackingData.riderLatitude,
+                  riderLongitude: state.trackingData.riderLongitude,
+                } : {};
+
+                return {
+                  trackingData: {
+                    id: docSnapshot.id,
+                    currentStatus,
+                    orderCode: data?.orderCode || '',
+                    estimatedDelivery: data?.estimatedDeliveryMin || '20',
+                    price: data?.totalPrice ? data.totalPrice.toString() : '20',
+                    rating: data?.sellerRating || '4.5',
+                    storeName: data?.sellerName || '',
+                    storeImage: data?.sellerImage || '',
+                    ...existingRiderData,
+                  },
+                  isLoading: false,
+                };
               });
             } else {
               set({ trackingData: null, isLoading: false });
@@ -95,7 +155,13 @@ export const useTrackingStore = create<TrackingState>((set, get) => ({
     const unsub = get().unsubscribe;
     if (unsub) {
       unsub();
-      set({ unsubscribe: null, trackingData: null });
+      set({ unsubscribe: null });
     }
+    const unsubRider = get().riderUnsubscribe;
+    if (unsubRider) {
+      unsubRider();
+      set({ riderUnsubscribe: null });
+    }
+    set({ trackingData: null });
   },
 }));

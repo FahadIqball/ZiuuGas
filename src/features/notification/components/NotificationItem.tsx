@@ -19,6 +19,14 @@ interface NotificationItemProps {
     style?: ViewStyle;
 }
 
+const resolveNotificationImage = (img: any) => {
+    if (!img) return null;
+    if (typeof img === 'string') {
+        return { uri: img };
+    }
+    return img;
+};
+
 export const NotificationItem: React.FC<NotificationItemProps> = ({
     store,
     message,
@@ -33,12 +41,14 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
         const styles = useStyles(createStyles);
         const { t } = useTranslation();
 
+    const resolvedImage = resolveNotificationImage(image);
+
     if (variant === 'seller') {
         return (
             <View style={[styles.sellerContainer, style]}>
                 <View style={styles.content}>
-                    {image && (
-                        <Image source={image} style={styles.avatar} resizeMode="cover" />
+                    {resolvedImage && (
+                        <Image source={resolvedImage} style={styles.avatar} resizeMode="cover" />
                     )}
                     <View style={[styles.textContainer, !image && { marginLeft: 0 }]}>
                         <AppText color={colors.secondary} style={styles.sellerTitle}>
@@ -66,7 +76,9 @@ export const NotificationItem: React.FC<NotificationItemProps> = ({
     return (
         <View style={styles.container}>
             <View style={styles.content}>
-                <Image source={image} style={styles.image} resizeMode="contain" />
+                {resolvedImage && (
+                    <Image source={resolvedImage} style={styles.image} resizeMode="contain" />
+                )}
                 <View style={styles.textContainer}>
                     <AppText style={styles.storeName}>
                         {store}

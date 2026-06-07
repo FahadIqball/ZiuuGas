@@ -3,6 +3,8 @@ import { STORAGE_KEYS } from '../constants/storageKeys';
 import { storage } from '../utils/storage';
 import { authRepository, userRepository } from '../services/authService';
 import { UserProfile, UserRole, checkIsProfileComplete } from '../features/auth/services/types';
+import firestore from '@react-native-firebase/firestore';
+import messaging from '@react-native-firebase/messaging';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -13,6 +15,8 @@ interface AuthContextType {
   isProfileComplete: boolean;
   login: (role?: UserRole, extraProfile?: Partial<UserProfile>) => Promise<void>;
   loginWithGoogle: (defaultRole?: UserRole) => Promise<void>;
+  loginWithEmail: (email: string, password: string, targetRole?: UserRole) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, targetRole?: UserRole) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (profile: Partial<UserProfile>) => Promise<void>;
 }
@@ -38,6 +42,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
 
   const isProfileComplete = useMemo(() => checkIsProfileComplete(user), [user]);
+
+  const registerFcmToken = async (uid: string) => {
+    try {
+      const authStatus = await messaging().requestPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+
+      if (enabled) {
+        const fcmToken = await messaging().getToken();
+        if (fcmToken) {
+          await firestore().collection('users').doc(uid).update({
+            fcmToken: fcmToken,
+          });
+          console.log('[AuthContext] FCM token registered for UID:', uid);
+        }
+      }
+    } catch (err) {
+      console.warn('[AuthContext] registerFcmToken failed:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && user?.uid && user.uid !== 'mock-uid') {
+      registerFcmToken(user.uid);
+    }
+  }, [isAuthenticated, user?.uid]);
 
   useEffect(() => {
     // Subscribe to Firebase Auth state updates
@@ -166,6 +197,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       storage.remove('PENDING_TARGET_ROLE');
       storage.remove('PENDING_SELLER_INFO');
       setError(err.message || 'Google Sign-in failed.');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginWithEmail = async (email: string, password: string, targetRole?: UserRole) => {
+    setLoading(true);
+    setError(null);
+    if (targetRole) {
+      storage.set('PENDING_TARGET_ROLE', targetRole);
+    }
+    try {
+      await authRepository.signInWithEmail(email, password);
+    } catch (err: any) {
+      console.error('Email login failed in AuthContext:', err);
+      storage.remove('PENDING_TARGET_ROLE');
+      setError(err.message || 'Email Sign-in failed.');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signUpWithEmail = async (email: string, password: string, targetRole?: UserRole) => {
+    setLoading(true);
+    setError(null);
+    if (targetRole) {
+      storage.set('PENDING_TARGET_ROLE', targetRole);
+    }
+    try {
+      await authRepository.signUpWithEmail(email, password);
+    } catch (err: any) {
+      console.error('Email registration failed in AuthContext:', err);
+      storage.remove('PENDING_TARGET_ROLE');
+      setError(err.message || 'Email Registration failed.');
       throw err;
     } finally {
       setLoading(false);
@@ -320,6 +387,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isProfileComplete,
     login,
     loginWithGoogle,
+    loginWithEmail,
+    signUpWithEmail,
     logout,
     updateProfile,
   }), [isAuthenticated, user, userRole, loading, error, isProfileComplete]);

@@ -20,4 +20,7 @@ export interface OrderRepository {
    * Updates status of an order.
    */
   updateOrderStatus(orderId: string, status: OrderStatus): Promise<void>;
+
+  subscribeToOrdersByUser(userId: string, onUpdate: (orders: Order[]) => void): () => void;
+  subscribeToOrdersBySeller(sellerId: string, onUpdate: (orders: Order[]) => void): () => void;
 }

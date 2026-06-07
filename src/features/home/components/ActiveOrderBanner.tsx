@@ -10,6 +10,8 @@ import { FONT } from '../../../enums/typography';
 import { hp, wp } from '../../../enums/spacing';
 import { Routes } from '../../../constants/routes';
 
+import { resolveProductImage } from '../../products/utils/imageResolver';
+
 interface ActiveOrderBannerProps {
   navigation: any;
 }
@@ -18,28 +20,44 @@ export const ActiveOrderBanner: React.FC<ActiveOrderBannerProps> = ({ navigation
   const { colors } = useTheme();
   const styles = useStyles(createStyles);
   const { t } = useTranslation();
+  const { activeOrderData } = useNotification();
 
   const handleTrackOrder = () => {
-    navigation.navigate(Routes.TRACK_ORDER);
+    if (activeOrderData?.id) {
+      navigation.navigate(Routes.TRACK_ORDER, { orderId: activeOrderData.id });
+    }
   };
+
+  const imageSource = activeOrderData?.sellerImage
+    ? { uri: activeOrderData.sellerImage }
+    : require('../../../assets/images/notificationcylinder.png');
 
   return (
     <View style={styles.outerContainer}>
       <View style={styles.container}>
         <View style={styles.leftSection}>
           <Image
-            source={require('../../../assets/images/notificationcylinder.png')}
+            source={imageSource}
             style={styles.shopImage}
           />
           <View style={styles.details}>
             <AppText variant="bodySmall" color={colors.secondary} style={styles.shopName}>
-              {t('gas_cylinder_store')}
+              {activeOrderData?.sellerName || t('gas_cylinder_store')}
             </AppText>
             <View style={styles.stats}>
               <View style={styles.statIconPlaceholder} />
-              <AppText style={styles.statText}>20 {t('mins')}</AppText>
-              <AppText style={styles.statText}>{t('order_no')} #1361383</AppText>
-              <AppText style={styles.priceText}>{t('price')} <AppText style={styles.priceValue}>20$</AppText></AppText>
+              <AppText style={styles.statText}>
+                {activeOrderData?.estimatedDeliveryMin || '20'} {t('mins')}
+              </AppText>
+              <AppText style={styles.statText}>
+                {t('order_no')} #{activeOrderData?.orderCode || '00000'}
+              </AppText>
+              <AppText style={styles.priceText}>
+                {t('price')}{' '}
+                <AppText style={styles.priceValue}>
+                  {activeOrderData?.totalPrice || '20'}{t('currency') || '$'}
+                </AppText>
+              </AppText>
             </View>
           </View>
         </View>

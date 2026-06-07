@@ -13,7 +13,8 @@ import { Routes } from '../../../constants/routes'
 import { useInterstitialAd } from 'react-native-google-mobile-ads'
 import { AD_UNIT_IDS } from '../../../constants/ads'
 
-const PaymentSuccessScreen = ({ navigation }: any) => {
+const PaymentSuccessScreen = ({ navigation, route }: any) => {
+    const { orderId } = route?.params || {};
     const { isLoaded, isClosed, load, show } = useInterstitialAd(AD_UNIT_IDS.INTERSTITIAL, {
         requestNonPersonalizedAdsOnly: true,
     });
@@ -45,16 +46,37 @@ const PaymentSuccessScreen = ({ navigation }: any) => {
             });
         }
     };
+
+    const handleTrackOrder = () => {
+        navigation.reset({
+            index: 1,
+            routes: [
+                { name: Routes.MAIN_TABS },
+                { name: Routes.TRACK_ORDER, params: { orderId } }
+            ],
+        });
+    };
+
     return (
         <View style={styles.container}>
             <SVG.Cart style={styles.cartIcon} />
             <AppText style={styles.congrats}>{t("Congratulations")}</AppText>
             <AppText style={styles.success}>{t("Order_Successful")}</AppText>
+            
+            {orderId ? (
+                <Button
+                    title={t("Track_Order")}
+                    onPress={handleTrackOrder}
+                    style={styles.trackButton}
+                    textStyle={styles.trackTxt}
+                />
+            ) : null}
+
             <Button
                 variant='outline'
                 title={t("done")}
                 onPress={handleDone}
-                style={styles.checkoutButton}
+                style={[styles.checkoutButton, { marginTop: orderId ? hp(1.5) : hp(4) }]}
                 textStyle={styles.doneTxt}
             />
         </View>
@@ -91,6 +113,16 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     checkoutButton: {
         width: '100%',
         height: hp(6),
+    },
+    trackButton: {
+        width: '100%',
+        height: hp(6),
+        marginTop: hp(4),
+    },
+    trackTxt: {
+        fontSize: 16,
+        fontFamily: FONT.medium,
+        color: colors.white,
     },
     doneTxt: {
         fontSize: 16,

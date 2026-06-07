@@ -15,15 +15,20 @@ export const useOrders = () => {
     const [deliveredOrders, setDeliveredOrders] = useState<any[]>([]);
     const [cancelledOrders, setCancelledOrders] = useState<any[]>([]);
 
-    const fetchOrders = async () => {
-        if (!user) return;
+    useEffect(() => {
+        if (!user?.uid) {
+            setOrders([]);
+            setPastOrders([]);
+            setPendingOrders([]);
+            setDeliveredOrders([]);
+            setCancelledOrders([]);
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
-        try {
-            const isSeller = userRole === 'seller';
-            const list = isSeller 
-                ? await orderRepository.getOrdersBySeller(user.uid)
-                : await orderRepository.getOrdersByUser(user.uid);
-            
+
+        const onOrdersUpdated = (list: any[]) => {
             const mapped = list.map(order => {
                 const firstItem = order.items[0];
                 const rawTitle = firstItem?.title || 'Gas Order';
@@ -54,16 +59,16 @@ export const useOrders = () => {
             setDeliveredOrders(mapped.filter(o => o.status === 'delivered'));
             setCancelledOrders(mapped.filter(o => o.status === 'cancelled'));
             setOrders(mapped);
-        } catch (err) {
-            console.error('Failed to load orders:', err);
-        } finally {
             setLoading(false);
-        }
-    };
+        };
 
-    useEffect(() => {
-        fetchOrders();
-    }, [user]);
+        const isSeller = userRole === 'seller';
+        const unsubscribe = isSeller
+            ? orderRepository.subscribeToOrdersBySeller(user.uid, onOrdersUpdated)
+            : orderRepository.subscribeToOrdersByUser(user.uid, onOrdersUpdated);
+
+        return unsubscribe;
+    }, [user?.uid, userRole, t]);
 
     return {
         orders,
@@ -72,7 +77,7 @@ export const useOrders = () => {
         pendingOrders,
         deliveredOrders,
         cancelledOrders,
-        refreshOrders: fetchOrders,
+        refreshOrders: () => {},
     };
 };
 export default useOrders;

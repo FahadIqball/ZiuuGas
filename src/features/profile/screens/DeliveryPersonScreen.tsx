@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Image, StatusBar } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, Image, StatusBar, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../../hooks/useTheme';
 import { useStyles } from '../../../hooks/useStyles';
@@ -12,34 +12,79 @@ import { FONT } from '../../../enums/typography';
 import { SVG, IMAGES } from '../../../assets';
 import { Card } from '../../../common/components/Card/Card';
 import { Routes } from '../../../constants/routes';
+import { useAuth } from '../../../context/AuthContext';
+import { storeRiderRepository } from '../../../services/storeRiderService';
+import { useFocusEffect } from '@react-navigation/native';
+import { UserProfile } from '../../auth/services/types';
 
 const DeliveryPersonScreen = ({ navigation }: any) => {
     const { colors, isDarkMode } = useTheme();
     const styles = useStyles(createStyles);
     const { t } = useTranslation();
+    const { user } = useAuth();
 
-    const [deliveryPersons, setDeliveryPersons] = useState([
-        { id: '1', name: 'Andrew Ainsely', email: 'xyz@gmail.com', image: IMAGES.MAN4 },
-        { id: '2', name: 'John Hamer', email: 'xyz@gmail.com', image: IMAGES.MAN5 },
-        { id: '3', name: 'Henrey John', email: 'xyz@gmail.com', image: IMAGES.MAN6 },
-    ]);
+    const [deliveryPersons, setDeliveryPersons] = useState<UserProfile[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const handleDelete = (id: string) => {
-        setDeliveryPersons(prev => prev.filter(item => item.id !== id));
+    const fetchLinkedRiders = useCallback(async () => {
+        if (!user) return;
+        setLoading(true);
+        try {
+            const data = await storeRiderRepository.getLinkedRiders(user.uid);
+            setDeliveryPersons(data);
+        } catch (err) {
+            console.error('Failed to fetch linked riders:', err);
+            Alert.alert(t('Error'), t('failed_to_fetch_data'));
+        } finally {
+            setLoading(false);
+        }
+    }, [user, t]);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchLinkedRiders();
+        }, [fetchLinkedRiders])
+    );
+
+    const handleDelete = async (riderId: string) => {
+        if (!user) return;
+        Alert.alert(
+            t('confirm'),
+            t('confirm_delete_rider'),
+            [
+                { text: t('cancel'), style: 'cancel' },
+                {
+                    text: t('delete'),
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setLoading(true);
+                            await storeRiderRepository.removeRiderLink(user.uid, riderId);
+                            setDeliveryPersons(prev => prev.filter(item => item.uid !== riderId));
+                        } catch (err) {
+                            console.error('Failed to unlink rider:', err);
+                            Alert.alert(t('Error'), t('failed_to_delete_rider'));
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
-    const renderItem = ({ item }: { item: typeof deliveryPersons[0] }) => (
+    const renderItem = ({ item }: { item: UserProfile }) => (
         <Card style={styles.card}>
             <View style={styles.personInfo}>
-                <Image source={item.image} style={styles.avatar} />
+                <Image source={item.photoURL ? { uri: item.photoURL } : IMAGES.MAN4} style={styles.avatar} />
                 <View style={styles.textContainer}>
-                    <AppText style={styles.name}>{item.name}</AppText>
-                    <AppText style={styles.email}>{item.email}</AppText>
+                    <AppText style={styles.name}>{item.displayName || t('delivery_person')}</AppText>
+                    <AppText style={styles.email}>{item.email || ''}</AppText>
                 </View>
             </View>
             <TouchableOpacity
                 style={styles.deleteBtn}
-                onPress={() => handleDelete(item.id)}
+                onPress={() => handleDelete(item.uid)}
                 activeOpacity={0.7}
             >
                 <SVG.Trash width={hp(2)} height={hp(2)} fill={colors.error} />
@@ -55,13 +100,24 @@ const DeliveryPersonScreen = ({ navigation }: any) => {
                     title={t('delivery_person')}
                     showBackButton={true}
                 />
-                <FlatList
-                    data={deliveryPersons}
-                    keyExtractor={item => item.id}
-                    renderItem={renderItem}
-                    contentContainerStyle={styles.listContent}
-                    showsVerticalScrollIndicator={false}
-                />
+                {loading ? (
+                    <View style={styles.centerContainer}>
+                        <ActivityIndicator size="large" color={colors.primary} />
+                    </View>
+                ) : (
+                    <FlatList
+                        data={deliveryPersons}
+                        keyExtractor={item => item.uid}
+                        renderItem={renderItem}
+                        contentContainerStyle={styles.listContent}
+                        showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                <AppText style={styles.emptyText}>{t('no_linked_riders')}</AppText>
+                            </View>
+                        }
+                    />
+                )}
                 <TouchableOpacity
                     style={styles.fab}
                     onPress={() => navigation.navigate(Routes.ADD_DELIVERY_PERSON)}
@@ -148,5 +204,19 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
         fontSize: 30,
         color: colors.white,
         fontWeight: '300',
+    },
+    centerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        marginTop: hp(10),
+    },
+    emptyText: {
+        fontSize: 14,
+        fontFamily: FONT.regular,
+        color: colors.textSecondary,
     },
 });

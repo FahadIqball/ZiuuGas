@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Image, KeyboardAvoidingView, Platform, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Image, KeyboardAvoidingView, Platform, ScrollView, Alert, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../../hooks/useTheme';
 import { useStyles } from '../../../hooks/useStyles';
 import { ThemeColors } from '../../../enums/colors';
@@ -17,6 +17,8 @@ import { AppText } from '../../../common/components/Typography/Typography';
 import { useLogin } from '../hooks/useLogin';
 import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { storage } from '../../../utils/storage';
+import { imageStorageRepository } from '../../../services/imageStorageService';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 const SellerSignupScreen = ({ navigation }: any) => {
   const { colors } = useTheme();
@@ -27,6 +29,8 @@ const SellerSignupScreen = ({ navigation }: any) => {
   const [cnpj, setCnpj] = useState('');
   const [address, setAddress] = useState('');
   const [areaInKm, setAreaInKm] = useState(15);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const { signInWithGoogle, loading, error } = useLogin();
 
   useEffect(() => {
@@ -40,8 +44,20 @@ const SellerSignupScreen = ({ navigation }: any) => {
       if (user.cnpj) setCnpj(user.cnpj);
       if (user.address) setAddress(user.address);
       if (user.areaInKm) setAreaInKm(user.areaInKm);
+      if (user.photoURL) setPhotoUri(user.photoURL);
     }
   }, [user]);
+
+  const handlePhotoPick = async () => {
+    const result = await launchImageLibrary({
+      mediaType: 'photo',
+      quality: 0.8,
+    });
+
+    if (result.assets && result.assets[0].uri) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
 
   const handleGoogleSignup = async () => {
     try {
@@ -71,13 +87,19 @@ const SellerSignupScreen = ({ navigation }: any) => {
       Alert.alert(t('Error'), t('fill_all_fields'));
       return;
     }
+    setUploading(true);
     try {
+      let uploadedPhotoUrl = user?.photoURL || null;
+      if (photoUri && photoUri !== user?.photoURL) {
+        uploadedPhotoUrl = await imageStorageRepository.uploadFile(photoUri, 'profiles');
+      }
       if (isAuthenticated) {
         await updateProfile({
           cnpj,
           address,
           areaInKm,
           displayName: user?.displayName || t('gas_store'),
+          photoURL: uploadedPhotoUrl,
         });
       } else {
         await login('seller', {
@@ -85,11 +107,14 @@ const SellerSignupScreen = ({ navigation }: any) => {
           address,
           areaInKm,
           displayName: t('gas_store'),
+          photoURL: uploadedPhotoUrl,
         });
       }
     } catch (err: any) {
       console.error('Seller signup failed:', err);
       Alert.alert(t('Error'), err.message || t('failed_to_send_request'));
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -115,6 +140,23 @@ const SellerSignupScreen = ({ navigation }: any) => {
             <AppText style={styles.tabText}>
               {isLoggingIn ? t('login') : t('signUp')}
             </AppText>
+
+            {!isLoggingIn && (
+              <View style={styles.avatarSection}>
+                <TouchableOpacity onPress={handlePhotoPick} style={styles.avatarWrapper} activeOpacity={0.7}>
+                  <Image
+                    source={photoUri ? { uri: photoUri } : IMAGES.MAN1}
+                    style={styles.avatarImage}
+                  />
+                  <View style={styles.editBadge}>
+                    <SVG.Edit width={hp(2)} height={hp(2)} stroke={colors.white} />
+                  </View>
+                </TouchableOpacity>
+                <AppText color={colors.textSecondary} style={{ fontSize: 11, marginTop: spacing.s }}>
+                  {t('upload_image') || 'Upload Profile Picture'}
+                </AppText>
+              </View>
+            )}
 
             {!isLoggingIn && (
               <View style={styles.inputSection}>
@@ -164,12 +206,16 @@ const SellerSignupScreen = ({ navigation }: any) => {
             style={styles.googleBtn}
           />
 
-          <Button
-            title={isLoggingIn ? t('login') : t('signUp')}
-            variant="primary"
-            onPress={handleSignupPress}
-            style={styles.signupBtn}
-          />
+          {uploading ? (
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: spacing.s }} />
+          ) : (
+            <Button
+              title={isLoggingIn ? t('login') : t('signUp')}
+              variant="primary"
+              onPress={handleSignupPress}
+              style={styles.signupBtn}
+            />
+          )}
 
           {!isAuthenticated && (
             <TouchableOpacity
@@ -277,7 +323,37 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   icon: {
     height: hp(2.5),
     width: wp(2.5)
-  }
+  },
+  avatarSection: {
+    alignItems: 'center',
+    marginVertical: hp(1.5),
+  },
+  avatarWrapper: {
+    position: 'relative',
+    borderRadius: hp(6),
+    borderWidth: 2,
+    borderColor: colors.primary,
+    padding: 3,
+  },
+  avatarImage: {
+    width: hp(12),
+    height: hp(12),
+    borderRadius: hp(6),
+    backgroundColor: colors.inputBackground,
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: colors.primary,
+    width: hp(4),
+    height: hp(4),
+    borderRadius: hp(2),
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
 });
 
 export default SellerSignupScreen;

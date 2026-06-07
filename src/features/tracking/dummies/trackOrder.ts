@@ -15,6 +15,12 @@ export interface TrackingDetails {
     rating?: string;
     storeName?: string;
     storeImage?: string;
+    riderId?: string;
+    riderName?: string;
+    riderPhoto?: string;
+    riderPhone?: string;
+    riderLatitude?: number;
+    riderLongitude?: number;
 }
 
 export const MOCK_TRACKING_DETAILS: TrackingDetails = {

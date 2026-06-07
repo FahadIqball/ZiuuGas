@@ -32,22 +32,19 @@ export const usePartnerLocation = (isOnline: boolean) => {
       const nextCoords = { latitude: newLat, longitude: newLng };
       
       setCoordinates(nextCoords);
-      // Commented out to prevent spamming Firestore writes in development. 
-      // Re-enable when implementing actual/paid map services.
-      /*
       try {
-        await deliveryRepository.updateRiderLocation(user.uid, newLat, newLng);
+        // Commented out location updates as map feature is skipped for now
+        // await deliveryRepository.updateRiderLocation(user.uid, newLat, newLng);
       } catch (err) {
         console.error('Failed to update rider location in DB:', err);
       }
-      */
     };
 
     // Run initially
     updateLocation();
 
-    // Broadcast location every 15 seconds
-    timerRef.current = setInterval(updateLocation, 15000);
+    // Broadcast location every 15 seconds (Commented out for now as map feature is skipped)
+    // timerRef.current = setInterval(updateLocation, 15000);
 
     return () => {
       if (timerRef.current) {

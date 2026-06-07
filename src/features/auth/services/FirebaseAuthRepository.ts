@@ -94,4 +94,30 @@ export class FirebaseAuthRepository implements AuthRepository {
       }
     });
   }
+
+  async signInWithEmail(email: string, password: string): Promise<UserProfile> {
+    try {
+      const userCredential = await auth().signInWithEmailAndPassword(email, password);
+      if (!userCredential.user) {
+        throw new Error('Email login failed.');
+      }
+      return this.mapFirebaseUser(userCredential.user);
+    } catch (error: any) {
+      console.error('FirebaseAuthRepository.signInWithEmail failed:', error);
+      throw error;
+    }
+  }
+
+  async signUpWithEmail(email: string, password: string): Promise<UserProfile> {
+    try {
+      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+      if (!userCredential.user) {
+        throw new Error('Email registration failed.');
+      }
+      return this.mapFirebaseUser(userCredential.user);
+    } catch (error: any) {
+      console.error('FirebaseAuthRepository.signUpWithEmail failed:', error);
+      throw error;
+    }
+  }
 }
