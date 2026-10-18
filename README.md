@@ -10,6 +10,7 @@ This README is intended for a public repository and provides a clear setup guide
 
 - [Overview](#overview)
 - [Features](#features)
+- [Screenshots](#screenshots)
 - [Tech stack](#tech-stack)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
@@ -39,6 +40,38 @@ ZiuuGas is a mobile-first application designed to help users interact with gas s
 - Local state management with Zustand
 - Persistent storage with MMKV
 - Adaptive UI and navigation with React Navigation
+
+## Screenshots
+
+Add your app screenshots here for a public-facing repository. You can place images in a `docs/screenshots` or `assets/screenshots` folder and reference them like this:
+
+```md
+## Mobile App Preview
+
+![Home Screen](docs/screenshots/home.png)
+![Map View](docs/screenshots/map.png)
+![Station Details](docs/screenshots/details.png)
+```
+
+Example layout:
+
+```md
+<div align="center">
+  <img src="docs/screenshots/home.png" alt="Home screen" width="220" />
+  <img src="docs/screenshots/map.png" alt="Map screen" width="220" />
+  <img src="docs/screenshots/details.png" alt="Details screen" width="220" />
+</div>
+```
+
+Recommended folder structure:
+
+```text
+docs/
+└── screenshots/
+    ├── home.png
+    ├── map.png
+    ├── details.png
+```
 
 ## Tech stack
 
@@ -175,6 +208,11 @@ ZiuuGas/
 ├── vercel-backend/
 │   ├── package.json
 │   └── ...
+├── docs/
+│   └── screenshots/
+│       ├── home.png
+│       ├── map.png
+│       └── details.png
 └── README.md
 ```
 
@@ -196,4 +234,4 @@ This project does not currently include a license file. If you plan to make the 
 - GitHub: https://github.com/FahadIqball
 - Repository: https://github.com/FahadIqball/ZiuuGas
 
-If you want, you can also add a screenshot section, app features, and screenshots of the UI to make the README more polished for public visibility.
+If you want, I can also prepare a more premium README version with app badges, a feature gallery, and a fully polished public release layout.
