@@ -43,35 +43,12 @@ ZiuuGas is a mobile-first application designed to help users interact with gas s
 
 ## Screenshots
 
-Add your app screenshots here for a public-facing repository. You can place images in a `docs/screenshots` or `assets/screenshots` folder and reference them like this:
+<img width="390" height="844" alt="selection 1" src="https://github.com/user-attachments/assets/03e84ef8-ae99-47c9-bca4-98bdd45a574c" />
+<img width="390" height="844" alt="gas" src="https://github.com/user-attachments/assets/d09ddd47-7cc3-49f3-87f7-111ecbdb2c6c" />
+<img width="390" height="844" alt="detail" src="https://github.com/user-attachments/assets/4c5f94c8-5e98-4323-a6f9-dafcebfe341e" />
+<img width="390" height="844" alt="track" src="https://github.com/user-attachments/assets/17f9b55b-8ec5-4204-9176-25bfe94806a3" />
 
-```md
-## Mobile App Preview
 
-![Home Screen](docs/screenshots/home.png)
-![Map View](docs/screenshots/map.png)
-![Station Details](docs/screenshots/details.png)
-```
-
-Example layout:
-
-```md
-<div align="center">
-  <img src="docs/screenshots/home.png" alt="Home screen" width="220" />
-  <img src="docs/screenshots/map.png" alt="Map screen" width="220" />
-  <img src="docs/screenshots/details.png" alt="Details screen" width="220" />
-</div>
-```
-
-Recommended folder structure:
-
-```text
-docs/
-└── screenshots/
-    ├── home.png
-    ├── map.png
-    ├── details.png
-```
 
 ## Tech stack
 
