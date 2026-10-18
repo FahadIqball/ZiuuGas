@@ -1,97 +1,199 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# ZiuuGas
 
-# Getting Started
+ZiuuGas is a React Native mobile app built with TypeScript for gas station discovery and related utility features. It integrates Firebase services, Google Sign-In, push notifications, maps, and image handling. A lightweight Vercel serverless backend is included for Firebase Cloud Messaging and ImageKit authentication.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+This README is intended for a public repository and provides a clear setup guide for local development.
 
-## Step 1: Start Metro
+---
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## Table of contents
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+- [Overview](#overview)
+- [Features](#features)
+- [Tech stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Running the app](#running-the-app)
+- [Backend](#backend)
+- [Environment variables](#environment-variables)
+- [Scripts](#scripts)
+- [Project structure](#project-structure)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
 
-```sh
-# Using npm
+---
+
+## Overview
+
+ZiuuGas is a mobile-first application designed to help users interact with gas station-related services and data. The app uses React Native and TypeScript for the client experience, while Firebase powers authentication, Firestore, and push messaging.
+
+## Features
+
+- Firebase Authentication
+- Firebase Firestore integration
+- Firebase Cloud Messaging support
+- Google Sign-In
+- Maps and location features
+- Image picker and image upload support
+- Local state management with Zustand
+- Persistent storage with MMKV
+- Adaptive UI and navigation with React Navigation
+
+## Tech stack
+
+- React Native 0.85.2
+- TypeScript
+- Firebase SDKs for React Native
+- React Navigation
+- Zustand
+- MMKV
+- React Native Maps
+- Vercel serverless backend
+
+## Prerequisites
+
+Before running the project, make sure you have:
+
+- Node.js 22.11.0 or newer
+- npm or Yarn
+- Android Studio for Android development
+- Xcode and CocoaPods for iOS development on macOS
+
+For environment setup, follow the official React Native guide:
+https://reactnative.dev/docs/environment-setup
+
+## Installation
+
+1. Clone the repository
+
+```bash
+git clone https://github.com/FahadIqball/ZiuuGas.git
+cd ZiuuGas
+```
+
+2. Install dependencies
+
+With npm:
+
+```bash
+npm install
+```
+
+With Yarn:
+
+```bash
+yarn install
+```
+
+3. Install iOS dependencies (macOS only)
+
+```bash
+bundle install
+bundle exec pod install
+```
+
+## Running the app
+
+Start Metro:
+
+```bash
 npm start
-
-# OR using Yarn
+# or
 yarn start
 ```
 
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
+Run the app:
 
 ### Android
 
-```sh
-# Using npm
+```bash
 npm run android
-
-# OR using Yarn
+# or
 yarn android
 ```
 
 ### iOS
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
+```bash
 npm run ios
-
-# OR using Yarn
+# or
 yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## Backend
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+This repository includes a small serverless backend under `vercel-backend/` for tasks such as:
 
-## Step 3: Modify your app
+- Firebase Cloud Messaging integration
+- ImageKit token generation/authentication
 
-Now that you have successfully run the app, let's make changes!
+Deploy the backend to Vercel and configure the required environment variables.
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+## Environment variables
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+This project uses external services and should not expose secrets in version control.
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+You may need to configure values such as:
 
-## Congratulations! :tada:
+- Firebase configuration files
+- Google Sign-In credentials
+- Cloud messaging configuration
+- ImageKit keys
+- Any app-specific API keys or service secrets
 
-You've successfully run and modified your React Native App. :partying_face:
+Recommended approach:
 
-### Now what?
+- Use `.env` files for local development
+- Use Vercel environment variables for the backend deployment
+- Store secrets in your platform's secret manager or CI/CD environment
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+## Scripts
 
-# Troubleshooting
+The root app includes the following scripts:
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+- `npm start` or `yarn start` — starts Metro
+- `npm run android` or `yarn android` — runs Android app
+- `npm run ios` or `yarn ios` — runs iOS app
+- `npm test` — runs Jest tests
+- `npm run lint` — runs ESLint
 
-# Learn More
+## Project structure
 
-To learn more about React Native, take a look at the following resources:
+```text
+ZiuuGas/
+├── android/
+├── ios/
+├── src/
+├── App.tsx
+├── app.json
+├── babel.config.js
+├── index.js
+├── metro.config.js
+├── package.json
+├── tsconfig.json
+├── vercel-backend/
+│   ├── package.json
+│   └── ...
+└── README.md
+```
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+## Contributing
+
+Contributions are welcome. To contribute:
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Open a pull request with a clear description
+
+## License
+
+This project does not currently include a license file. If you plan to make the repository public, consider adding an open-source license such as MIT to clarify how others may use and modify the code.
+
+## Contact
+
+- GitHub: https://github.com/FahadIqball
+- Repository: https://github.com/FahadIqball/ZiuuGas
+
+If you want, you can also add a screenshot section, app features, and screenshots of the UI to make the README more polished for public visibility.
